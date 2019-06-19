@@ -1,0 +1,43 @@
+{
+	"ImportPath": "github.com/likipiki/UwdBot",
+	"GoVersion": "go1.11",
+	"GodepVersion": "v80",
+	"Deps": [
+		{
+			"ImportPath": "github.com/PuerkitoBio/goquery",
+			"Comment": "v1.5.0-4-g3dcf72e",
+			"Rev": "3dcf72e6c17f694381a21592651ca1464ded0e10"
+		},
+		{
+			"ImportPath": "github.com/andybalholm/cascadia",
+			"Comment": "v1.0.0-2-g680b6a5",
+			"Rev": "680b6a57bda4f657485ad44bdea42342ead737bc"
+		},
+		{
+			"ImportPath": "github.com/go-telegram-bot-api/telegram-bot-api",
+			"Comment": "v4.6.4-23-gcea05bf",
+			"Rev": "cea05bfc443c89b43d5fa0ddd28eeb15dfe20639"
+		},
+		{
+			"ImportPath": "github.com/technoweenie/multipartstreamer",
+			"Comment": "v1.0.1",
+			"Rev": "a90a01d73ae432e2611d178c18367fbaa13e0154"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html",
+			"Rev": "3f473d35a33aa6fdd203e306dc439b797820e3f1"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html/atom",
+			"Rev": "3f473d35a33aa6fdd203e306dc439b797820e3f1"
+		},
+		{
+			"ImportPath": "golang.org/x/net/internal/socks",
+			"Rev": "3f473d35a33aa6fdd203e306dc439b797820e3f1"
+		},
+		{
+			"ImportPath": "golang.org/x/net/proxy",
+			"Rev": "3f473d35a33aa6fdd203e306dc439b797820e3f1"
+		}
+	]
+}
