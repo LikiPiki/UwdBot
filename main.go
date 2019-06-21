@@ -12,6 +12,8 @@ import (
 
 const (
 	TOKEN = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
+	// DEBUG token
+	// TOKEN = "427558135:AAEnSxpTD_wOMxhoWjVzrNO5YQa3vZHbEMM"
 	PROXY = "195.201.103.36:1080"
 )
 
@@ -62,13 +64,19 @@ func main() {
 				link, fl := app.getLastVideoLink()
 				if fl {
 					sender.SendReply(msg,
-						fmt.Sprintf("Свежий выпуск: %s", link),
+						fmt.Sprintf("Последнее видео: %s", link),
 					)
 				}
 			case "kek":
 				go sender.SendReply(
 					msg,
 					generateKek(),
+				)
+			case "poll":
+				poll := app.GetPoll()
+				go sender.SendPoll(
+					msg,
+					&poll,
 				)
 			default:
 				go sender.SendUnknown(msg)

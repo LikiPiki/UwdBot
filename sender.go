@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 
@@ -54,6 +55,29 @@ func (s Sender) SendReply(msg *tgbotapi.Message, text string) {
 		msg.Chat.ID,
 		text,
 	)
+
+	_, err := s.bot.Send(reply)
+
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll) {
+	var reply tgbotapi.MessageConfig
+	reply = tgbotapi.NewMessage(
+		msg.Chat.ID,
+		poll.Data.Question,
+	)
+	fmt.Println(poll.Data)
+	keyboard := tgbotapi.InlineKeyboardMarkup{}
+	for _, class := range poll.Data.Answers {
+		var row []tgbotapi.InlineKeyboardButton
+		btn := tgbotapi.NewInlineKeyboardButtonData(class, class)
+		row = append(row, btn)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+	}
+	reply.ReplyMarkup = keyboard
 
 	_, err := s.bot.Send(reply)
 
