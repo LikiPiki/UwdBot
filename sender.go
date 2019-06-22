@@ -63,7 +63,12 @@ func (s Sender) SendReply(msg *tgbotapi.Message, text string) {
 	}
 }
 
-func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll) {
+func (s Sender) SendInlineKeyboardReply(CallbackQuery *tgbotapi.CallbackQuery, text string) {
+	s.bot.AnswerCallbackQuery(tgbotapi.NewCallback(CallbackQuery.ID, text))
+	s.bot.Send(tgbotapi.NewMessage(CallbackQuery.Message.Chat.ID, text))
+}
+
+func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) {
 	var reply tgbotapi.MessageConfig
 	reply = tgbotapi.NewMessage(
 		msg.Chat.ID,
@@ -71,9 +76,9 @@ func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll) {
 	)
 	fmt.Println(poll.Data)
 	keyboard := tgbotapi.InlineKeyboardMarkup{}
-	for _, class := range poll.Data.Answers {
+	for k, class := range poll.Data.Answers {
 		var row []tgbotapi.InlineKeyboardButton
-		btn := tgbotapi.NewInlineKeyboardButtonData(class, class)
+		btn := tgbotapi.NewInlineKeyboardButtonData(class, fmt.Sprintf("poll|%d|%d", id, k))
 		row = append(row, btn)
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 	}

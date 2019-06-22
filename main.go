@@ -5,15 +5,17 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"golang.org/x/net/proxy"
 )
 
 const (
-	TOKEN = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
+	// TOKEN = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
 	// DEBUG token
-	// TOKEN = "427558135:AAEnSxpTD_wOMxhoWjVzrNO5YQa3vZHbEMM"
+	TOKEN = "427558135:AAEnSxpTD_wOMxhoWjVzrNO5YQa3vZHbEMM"
 	PROXY = "195.201.103.36:1080"
 )
 
@@ -42,9 +44,10 @@ func main() {
 	bot.Debug = false
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-	var app App
 	var sender Sender
 	sender.Init(bot)
+
+	app := InitApp()
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -52,10 +55,56 @@ func main() {
 	updates, err := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		msg := update.Message
+
+		if update.CallbackQuery != nil {
+			callbackQuery := update.CallbackQuery
+			text := update.CallbackQuery.Data
+			words := strings.Split(text, "|")
+			if len(words) > 0 {
+				if words[0] == "poll" {
+					num, ans := words[1], words[2]
+					questionNumber, err := strconv.Atoi(num)
+					if err != nil {
+						log.Println(err)
+					}
+					ansNumber, err := strconv.Atoi(ans)
+					if err != nil {
+						log.Println(err)
+					}
+					ok := app.CheckNumberQuestions(questionNumber, ansNumber)
+
+					if ok {
+						check, solved := app.CheckPoll(questionNumber, ansNumber)
+						if !solved {
+							if check {
+								app.SolvePoll(questionNumber, ansNumber)
+								sender.SendInlineKeyboardReply(
+									callbackQuery,
+									generateUserSolve(callbackQuery.From.UserName),
+								)
+							} else {
+								sender.SendInlineKeyboardReply(
+									callbackQuery,
+									generateWrong(callbackQuery.From.UserName),
+								)
+							}
+						} else {
+							sender.SendInlineKeyboardReply(
+								callbackQuery,
+								generateSolved(callbackQuery.From.UserName),
+							)
+						}
+					} else {
+						sender.SendInlineKeyboardReply(callbackQuery, "Данный пол устарел! /poll")
+					}
+				}
+			}
+		}
+
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
 		}
-		msg := update.Message
 
 		if msg.IsCommand() {
 			command := msg.Command()
@@ -73,10 +122,15 @@ func main() {
 					generateKek(),
 				)
 			case "poll":
-				poll := app.GetPoll()
+				id := app.GetPoll()
+				fmt.Println("TESTING")
+				for d, poll := range app.Polls {
+					fmt.Printf("%d %s %b", d, poll.Data.Question, poll.Data.Solved)
+				}
 				go sender.SendPoll(
 					msg,
-					&poll,
+					&app.Polls[id],
+					id,
 				)
 			default:
 				go sender.SendUnknown(msg)
