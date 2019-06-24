@@ -3,6 +3,8 @@ package main
 import (
 	"math/rand"
 	"time"
+
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type QuestionsData struct {
@@ -15,8 +17,13 @@ type QuestionsData struct {
 }
 
 type Poll struct {
-	Ok   bool          `json:"ok"`
-	Data QuestionsData `json:"data"`
+	Ok      bool          `json:"ok"`
+	Data    QuestionsData `json:"data"`
+	Message *tgbotapi.Message
+}
+
+func (p *Poll) GetSuccess() string {
+	return p.Data.Answers[p.Data.Valid]
 }
 
 func (p *Poll) Shuffle() {

@@ -68,7 +68,7 @@ func (s Sender) SendInlineKeyboardReply(CallbackQuery *tgbotapi.CallbackQuery, t
 	s.bot.Send(tgbotapi.NewMessage(CallbackQuery.Message.Chat.ID, text))
 }
 
-func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) {
+func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) tgbotapi.Message {
 	var reply tgbotapi.MessageConfig
 	reply = tgbotapi.NewMessage(
 		msg.Chat.ID,
@@ -84,7 +84,41 @@ func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) {
 	}
 	reply.ReplyMarkup = keyboard
 
-	_, err := s.bot.Send(reply)
+	message, err := s.bot.Send(reply)
+
+	if err != nil {
+		log.Println(err)
+	}
+	return message
+}
+
+func (s Sender) EditMessageMarkup(msg *tgbotapi.Message, markup *tgbotapi.InlineKeyboardMarkup) {
+	edit := tgbotapi.EditMessageReplyMarkupConfig{
+		BaseEdit: tgbotapi.BaseEdit{
+			ChatID:      msg.Chat.ID,
+			MessageID:   msg.MessageID,
+			ReplyMarkup: markup,
+		},
+	}
+
+	_, err := s.bot.Send(edit)
+
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (s Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode string) {
+	edit := tgbotapi.EditMessageTextConfig{
+		BaseEdit: tgbotapi.BaseEdit{
+			ChatID:    msg.Chat.ID,
+			MessageID: msg.MessageID,
+		},
+		Text:      text,
+		ParseMode: parsemode,
+	}
+
+	_, err := s.bot.Send(edit)
 
 	if err != nil {
 		log.Println(err)

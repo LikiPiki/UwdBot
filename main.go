@@ -83,6 +83,21 @@ func main() {
 									callbackQuery,
 									generateUserSolve(callbackQuery.From.UserName),
 								)
+								currentPoll := app.Polls[questionNumber]
+								sender.EditMessageMarkup(
+									currentPoll.Message,
+									nil,
+								)
+								sender.EditMessageText(
+									currentPoll.Message,
+									fmt.Sprintf(
+										"`%s`\nПравильный ответ - ___%s___.\nОтветил - @%s",
+										currentPoll.Message.Text,
+										currentPoll.GetSuccess(),
+										callbackQuery.From.UserName,
+									),
+									"markdown",
+								)
 							} else {
 								sender.SendInlineKeyboardReply(
 									callbackQuery,
@@ -123,15 +138,12 @@ func main() {
 				)
 			case "poll":
 				id := app.GetPoll()
-				fmt.Println("TESTING")
-				for d, poll := range app.Polls {
-					fmt.Printf("%d %s %b", d, poll.Data.Question, poll.Data.Solved)
-				}
-				go sender.SendPoll(
+				msg := sender.SendPoll(
 					msg,
 					&app.Polls[id],
 					id,
 				)
+				app.UpdatePollMessage(id, &msg)
 			default:
 				go sender.SendUnknown(msg)
 			}

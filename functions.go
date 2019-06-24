@@ -40,6 +40,7 @@ func generateUserSolve(username string) string {
 		"@%s ну что, это правильно!",
 		"@%s верно!",
 		"@%s Никита был бы доволен твоим интелектом!",
+		"@%s Верный ответ !",
 	}
 	return generatePhraseWithUsername(username, phrases)
 }

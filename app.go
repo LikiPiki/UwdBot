@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -51,6 +52,14 @@ func (a *App) ParseVideos() {
 		}
 	})
 	a.Videos = parsed
+}
+
+func (a *App) UpdatePollMessage(id int, msg *tgbotapi.Message) {
+	if len(a.Polls) > id {
+		a.Polls[id].Message = msg
+	} else {
+		log.Println("Invalid id")
+	}
 }
 
 func (a *App) getLastVideoLink() (string, bool) {
