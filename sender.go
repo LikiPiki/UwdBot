@@ -92,7 +92,7 @@ func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) tgbotapi.Mes
 	return message
 }
 
-func (s Sender) EditMessageMarkup(msg *tgbotapi.Message, markup *tgbotapi.InlineKeyboardMarkup) {
+func (s Sender) EditMessageMarkup(msg *tgbotapi.Message, markup *tgbotapi.InlineKeyboardMarkup) tgbotapi.Message {
 	edit := tgbotapi.EditMessageReplyMarkupConfig{
 		BaseEdit: tgbotapi.BaseEdit{
 			ChatID:      msg.Chat.ID,
@@ -101,14 +101,15 @@ func (s Sender) EditMessageMarkup(msg *tgbotapi.Message, markup *tgbotapi.Inline
 		},
 	}
 
-	_, err := s.bot.Send(edit)
+	message, err := s.bot.Send(edit)
 
 	if err != nil {
 		log.Println(err)
 	}
+	return message
 }
 
-func (s Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode string) {
+func (s Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode string) tgbotapi.Message {
 	edit := tgbotapi.EditMessageTextConfig{
 		BaseEdit: tgbotapi.BaseEdit{
 			ChatID:    msg.Chat.ID,
@@ -118,11 +119,12 @@ func (s Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode st
 		ParseMode: parsemode,
 	}
 
-	_, err := s.bot.Send(edit)
+	message, err := s.bot.Send(edit)
 
 	if err != nil {
 		log.Println(err)
 	}
+	return message
 }
 
 func (s Sender) SendUnknown(msg *tgbotapi.Message) {
