@@ -59,7 +59,7 @@ func generateWrong(username string) string {
 
 func GenerateRiot() (int, string) {
 	phrases := []string{
-		"Он на не бонан!!!",
+		"Он нам не бонан!!!",
 		"Бонан ЛОХ!",
 		"@banannakryvay пишев ты!",
 		"УУУУУ бонан самый худший админ",
