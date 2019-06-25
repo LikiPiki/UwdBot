@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"golang.org/x/net/proxy"
@@ -44,110 +42,18 @@ func main() {
 	bot.Debug = false
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
+
 	var sender Sender
 	sender.Init(bot)
-
 	app := InitApp()
+
+	controller := InitController(bot, app, &sender)
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates, err := bot.GetUpdatesChan(u)
 
-	for update := range updates {
-		msg := update.Message
+	controller.Switch(updates)
 
-		if update.CallbackQuery != nil {
-			callbackQuery := update.CallbackQuery
-			text := update.CallbackQuery.Data
-			words := strings.Split(text, "|")
-			if len(words) > 0 {
-				if words[0] == "poll" {
-					num, ans := words[1], words[2]
-					questionNumber, err := strconv.Atoi(num)
-					if err != nil {
-						log.Println(err)
-					}
-					ansNumber, err := strconv.Atoi(ans)
-					if err != nil {
-						log.Println(err)
-					}
-					ok := app.CheckNumberQuestions(questionNumber, ansNumber)
-
-					if ok {
-						check, solved := app.CheckPoll(questionNumber, ansNumber)
-						if !solved {
-							if check {
-								app.SolvePoll(questionNumber, ansNumber)
-								sender.SendInlineKeyboardReply(
-									callbackQuery,
-									generateUserSolve(callbackQuery.From.UserName),
-								)
-								currentPoll := app.Polls[questionNumber]
-								sender.EditMessageMarkup(
-									currentPoll.Message,
-									nil,
-								)
-								sender.EditMessageText(
-									currentPoll.Message,
-									fmt.Sprintf(
-										"`%s`\nПравильный ответ - ___%s___.\nОтветил - @%s",
-										currentPoll.Message.Text,
-										currentPoll.GetSuccess(),
-										callbackQuery.From.UserName,
-									),
-									"markdown",
-								)
-							} else {
-								sender.SendInlineKeyboardReply(
-									callbackQuery,
-									generateWrong(callbackQuery.From.UserName),
-								)
-							}
-						} else {
-							sender.SendInlineKeyboardReply(
-								callbackQuery,
-								generateSolved(callbackQuery.From.UserName),
-							)
-						}
-					} else {
-						sender.SendInlineKeyboardReply(callbackQuery, "Данный пол устарел! /poll")
-					}
-				}
-			}
-		}
-
-		if update.Message == nil { // ignore any non-Message Updates
-			continue
-		}
-
-		if msg.IsCommand() {
-			command := msg.Command()
-			switch command {
-			case "last":
-				link, fl := app.getLastVideoLink()
-				if fl {
-					sender.SendReply(msg,
-						fmt.Sprintf("Последнее видео: %s", link),
-					)
-				}
-			case "kek":
-				go sender.SendReply(
-					msg,
-					generateKek(),
-				)
-			case "poll":
-				id := app.GetPoll()
-				msg := sender.SendPoll(
-					msg,
-					&app.Polls[id],
-					id,
-				)
-				app.UpdatePollMessage(id, &msg)
-			default:
-				go sender.SendUnknown(msg)
-			}
-		}
-
-	}
 }

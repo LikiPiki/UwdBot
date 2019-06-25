@@ -5,7 +5,7 @@ import (
 	"math/rand"
 )
 
-func genreatePhrase(phrases []string) string {
+func generatePhrase(phrases []string) string {
 	return phrases[rand.Intn(len(phrases))]
 }
 
@@ -13,7 +13,7 @@ func generatePhraseWithUsername(username string, phrases []string) string {
 	for i, phrase := range phrases {
 		phrases[i] = fmt.Sprintf(phrase, username)
 	}
-	return genreatePhrase(phrases)
+	return generatePhrase(phrases)
 }
 
 func generateKek() string {
@@ -24,7 +24,7 @@ func generateKek() string {
 		"КЕКУС",
 		"КЕК",
 	}
-	return genreatePhrase(phrases)
+	return generatePhrase(phrases)
 }
 
 func generateSolved(username string) string {
@@ -55,4 +55,25 @@ func generateWrong(username string) string {
 		"@%s УУУУУУУУУУУУУУУУУУУУ нееее, не то...",
 	}
 	return generatePhraseWithUsername(username, phrases)
+}
+
+func GenerateRiot() (int, string) {
+	phrases := []string{
+		"Он на не бонан!!!",
+		"Бонан ЛОХ!",
+		"@banannakryvay пишев ты!",
+		"УУУУУ бонан самый худший админ",
+	}
+	stickers := []string{
+		"CAADAgADBgADdPqvC4g0vr9WJeDGAg",
+	}
+	return GetStickerOrText(stickers, phrases)
+}
+
+func GetStickerOrText(stickers, phrases []string) (int, string) {
+	chance := rand.Intn(2)
+	if chance == Sticker {
+		return chance, stickers[rand.Intn(len(stickers))]
+	}
+	return chance, phrases[rand.Intn(len(phrases))]
 }

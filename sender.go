@@ -153,3 +153,18 @@ func (s Sender) SendUnknown(msg *tgbotapi.Message) {
 		)
 	}
 }
+
+func (s Sender) SendStickerOrText(msg *tgbotapi.Message, chance int, sending string) {
+	switch chance {
+	case Sticker:
+		s.SendSticker(
+			msg,
+			sending,
+		)
+	case Message:
+		s.SendReply(
+			msg,
+			sending,
+		)
+	}
+}

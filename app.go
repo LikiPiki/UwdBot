@@ -137,6 +137,7 @@ func (a *App) CheckNumberQuestions(num, ans int) bool {
 	}
 	return false
 }
+
 func (a *App) SolvePoll(num, ans int) {
 	a.Polls[num].Data.Solved = true
 }
