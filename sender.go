@@ -71,6 +71,7 @@ func (s Sender) SendMarkdownReply(msg *tgbotapi.Message, text string) {
 	)
 
 	reply.ParseMode = "markdown"
+	reply.ReplyToMessageID = msg.MessageID
 
 	_, err := s.bot.Send(reply)
 
