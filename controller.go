@@ -48,12 +48,14 @@ func (c Controller) Switch(updates tgbotapi.UpdatesChannel) {
 }
 
 func (c Controller) handleJoinMember(msg *tgbotapi.Message) {
-	text := GetJoin()
+	if msg.ReplyToMessage.MessageID == 0 {
+		text := GetJoin()
 
-	go c.sender.SendMarkdownReply(
-		msg,
-		text,
-	)
+		go c.sender.SendMarkdownReply(
+			msg,
+			text,
+		)
+	}
 }
 
 func (c Controller) handleCommand(msg *tgbotapi.Message) {
