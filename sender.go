@@ -63,6 +63,22 @@ func (s Sender) SendReply(msg *tgbotapi.Message, text string) {
 	}
 }
 
+func (s Sender) SendMarkdownReply(msg *tgbotapi.Message, text string) {
+	var reply tgbotapi.MessageConfig
+	reply = tgbotapi.NewMessage(
+		msg.Chat.ID,
+		text,
+	)
+
+	reply.ParseMode = "markdown"
+
+	_, err := s.bot.Send(reply)
+
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func (s Sender) SendInlineKeyboardReply(CallbackQuery *tgbotapi.CallbackQuery, text string) {
 	s.bot.AnswerCallbackQuery(tgbotapi.NewCallback(CallbackQuery.ID, text))
 	s.bot.Send(tgbotapi.NewMessage(CallbackQuery.Message.Chat.ID, text))

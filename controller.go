@@ -38,9 +38,22 @@ func (c Controller) Switch(updates tgbotapi.UpdatesChannel) {
 
 		if msg.IsCommand() {
 			c.handleCommand(msg)
+		} else {
+			c.handleJoinMember(
+				msg,
+			)
 		}
 
 	}
+}
+
+func (c Controller) handleJoinMember(msg *tgbotapi.Message) {
+	text := GetJoin()
+
+	go c.sender.SendMarkdownReply(
+		msg,
+		text,
+	)
 }
 
 func (c Controller) handleCommand(msg *tgbotapi.Message) {
