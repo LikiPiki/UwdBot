@@ -27,34 +27,28 @@ func generateKek() string {
 	return generatePhrase(phrases)
 }
 
-func generateSolved(username string) string {
+func generateSolved() string {
 	phrases := []string{
-		"@%s. Дядя, мы это уже решили!!",
-		"@%s. Ну это уже решена чишо)",
+		"Дядя, мы это уже решили!!",
+		"Ну это уже решена чишо)",
+		"ну что, это правильно!",
+		"верно!",
+		"Никита был бы доволен твоим интелектом!",
+		"Верный ответ !",
 	}
-	return generatePhraseWithUsername(username, phrases)
+	return generatePhrase(phrases)
 }
 
-func generateUserSolve(username string) string {
+func generateWrong() string {
 	phrases := []string{
-		"@%s ну что, это правильно!",
-		"@%s верно!",
-		"@%s Никита был бы доволен твоим интелектом!",
-		"@%s Верный ответ !",
+		"ну близко, но не то",
+		"я бы выбрал вариант выше, чем твой",
+		"Это конечно кек. Но неверно",
+		"Это конечно кек. Но неверно",
+		"Это не верно...",
+		"УУУУУУУ нееее, не то...",
 	}
-	return generatePhraseWithUsername(username, phrases)
-}
-
-func generateWrong(username string) string {
-	phrases := []string{
-		"@%s ну близко, но не то",
-		"@%s я бы выбрал вариант выше, чем твой",
-		"@%s Это конечно кек. Но неверно",
-		"@%s Это конечно кек. Но неверно",
-		"@%s Может стоит спросить у кого! Это не верно...",
-		"@%s УУУУУУУУУУУУУУУУУУУУ нееее, не то...",
-	}
-	return generatePhraseWithUsername(username, phrases)
+	return generatePhrase(phrases)
 }
 
 func GenerateRiot() (int, string) {

@@ -81,7 +81,6 @@ func (s Sender) SendMarkdownReply(msg *tgbotapi.Message, text string) {
 
 func (s Sender) SendInlineKeyboardReply(CallbackQuery *tgbotapi.CallbackQuery, text string) {
 	s.bot.AnswerCallbackQuery(tgbotapi.NewCallback(CallbackQuery.ID, text))
-	s.bot.Send(tgbotapi.NewMessage(CallbackQuery.Message.Chat.ID, text))
 }
 
 func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) tgbotapi.Message {

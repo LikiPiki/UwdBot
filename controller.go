@@ -130,27 +130,21 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 		log.Println(err)
 	}
 	ok := c.app.CheckNumberQuestions(questionNumber, ansNumber)
-	currentPoll := c.app.Polls[questionNumber]
-	memberClicked := currentPoll.HaveMember(username)
-	if memberClicked >= 2 {
+	if len(c.app.Polls) <= questionNumber {
+		c.sender.SendInlineKeyboardReply(
+			callbackQuery,
+			"Эта викторина уже устарела!",
+		)
 		return
 	}
+	currentPoll := c.app.Polls[questionNumber]
+	memberClicked := currentPoll.HaveMember(username)
 	currentPoll.AddMember(username)
-	if memberClicked == 1 {
-		if username == "" {
-			c.sender.SendInlineKeyboardReply(
-				callbackQuery,
-				"Чувак, у тебя только одна попытка!",
-			)
-		} else {
-			c.sender.SendInlineKeyboardReply(
-				callbackQuery,
-				fmt.Sprintf(
-					"@%s, у тебя только одна попытка!",
-					username,
-				),
-			)
-		}
+	if memberClicked >= 1 {
+		c.sender.SendInlineKeyboardReply(
+			callbackQuery,
+			"Чувак, у тебя только одна попытка!",
+		)
 		return
 	}
 
@@ -161,7 +155,7 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 				c.app.SolvePoll(questionNumber, ansNumber)
 				c.sender.SendInlineKeyboardReply(
 					callbackQuery,
-					generateUserSolve(username),
+					generateSolved(),
 				)
 				c.sender.EditMessageMarkup(
 					currentPoll.Message,
@@ -180,13 +174,13 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 			} else {
 				c.sender.SendInlineKeyboardReply(
 					callbackQuery,
-					generateWrong(username),
+					generateWrong(),
 				)
 			}
 		} else {
 			c.sender.SendInlineKeyboardReply(
 				callbackQuery,
-				generateSolved(username),
+				generateSolved(),
 			)
 		}
 	} else {
