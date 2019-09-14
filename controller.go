@@ -90,8 +90,6 @@ func (c Controller) handleCommand(msg *tgbotapi.Message) {
 			id,
 		)
 		c.app.UpdatePollMessage(id, &msg)
-	default:
-		go c.sender.SendUnknown(msg)
 	}
 }
 

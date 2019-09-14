@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/rand"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -142,33 +141,6 @@ func (s Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode st
 		log.Println(err)
 	}
 	return message
-}
-
-func (s Sender) SendUnknown(msg *tgbotapi.Message) {
-	messages := []string{
-		"Я не понимаю эту команду",
-		"Возможно банан все сломал...",
-		"Почитай /help",
-	}
-	stickers := []string{
-		"CAADAgAD6gEAAsE8ngaA44zCtd3nBAI",
-		"CAADAgADngADk8vUCDsXkJ5Ka6VsAg",
-		"CAADAgADRwYAAkxb1gn9h6PpAyEkggI",
-	}
-
-	chance := rand.Intn(2)
-	switch chance {
-	case Sticker:
-		s.SendSticker(
-			msg,
-			stickers[rand.Intn(len(stickers))],
-		)
-	case Message:
-		s.SendReply(
-			msg,
-			messages[rand.Intn(len(messages))],
-		)
-	}
 }
 
 func (s Sender) SendStickerOrText(msg *tgbotapi.Message, chance int, sending string) {
