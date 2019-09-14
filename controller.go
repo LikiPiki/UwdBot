@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -39,6 +40,9 @@ func (c Controller) Switch(updates tgbotapi.UpdatesChannel) {
 		if msg.IsCommand() {
 			c.handleCommand(msg)
 		} else {
+			if c.app.IsAdmin(msg.From.UserName) {
+				c.handleAdminCommands(msg)
+			}
 			c.handleJoinMember(
 				msg,
 			)
@@ -47,9 +51,18 @@ func (c Controller) Switch(updates tgbotapi.UpdatesChannel) {
 	}
 }
 
+func (c Controller) handleAdminCommands(msg *tgbotapi.Message) {
+	messageTextBytes := []byte(msg.Text)
+	regexSay := regexp.MustCompile(`@say ([^\n]*)`)
+	indexes := regexSay.FindSubmatchIndex(messageTextBytes)
+	if len(indexes) == 4 {
+		go c.sender.SendMessageToUWDChat(msg.Text[indexes[2]:indexes[3]])
+	}
+}
+
 func (c Controller) handleJoinMember(msg *tgbotapi.Message) {
 	// joined new user
-	if msg.ReplyToMessage == nil {
+	if msg.ReplyToMessage == nil && msg.Text == "" {
 
 		text := GetJoin(msg.From.UserName)
 

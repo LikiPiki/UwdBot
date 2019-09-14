@@ -23,17 +23,21 @@ const (
 type App struct {
 	Polls  []Poll
 	Videos []string
-	admins []string
+	admins map[string]bool
 }
 
 func InitApp() *App {
 	return &App{
 		Polls: []Poll{},
-		admins: []string{
-			"likipiki",
-			"websanya",
+		admins: map[string]bool{
+			"likipiki": true,
+			"websanya": true,
 		},
 	}
+}
+
+func (a *App) IsAdmin(username string) bool {
+	return a.admins[username]
 }
 
 func (a *App) ParseVideos() {
