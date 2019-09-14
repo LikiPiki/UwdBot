@@ -20,10 +20,19 @@ type Poll struct {
 	Ok      bool          `json:"ok"`
 	Data    QuestionsData `json:"data"`
 	Message *tgbotapi.Message
+	members map[string]bool
 }
 
 func (p *Poll) GetSuccess() string {
 	return p.Data.Answers[p.Data.Valid]
+}
+
+func (p *Poll) HaveMember(name string) bool {
+	return p.members[name]
+}
+
+func (p *Poll) AddMember(name string) {
+	p.members[name] = true
 }
 
 func (p *Poll) Shuffle() {

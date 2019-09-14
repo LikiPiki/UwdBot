@@ -77,6 +77,7 @@ func (a *App) LoadPoll() Poll {
 	}
 
 	poll := Poll{}
+	poll.members = make(map[string]bool)
 
 	q := req.URL.Query()
 	q.Add("count", "1")

@@ -105,16 +105,23 @@ func (c Controller) handleCallbackQuery(update tgbotapi.Update) {
 }
 
 func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, words []string) {
+	username := callbackQuery.From.UserName
 	num, ans := words[1], words[2]
 	questionNumber, err := strconv.Atoi(num)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	ansNumber, err := strconv.Atoi(ans)
 	if err != nil {
 		log.Println(err)
 	}
 	ok := c.app.CheckNumberQuestions(questionNumber, ansNumber)
+	currentPoll := c.app.Polls[questionNumber]
+	if currentPoll.HaveMember(username) {
+		return
+	}
+	currentPoll.AddMember(username)
 
 	if ok {
 		check, solved := c.app.CheckPoll(questionNumber, ansNumber)
@@ -123,9 +130,8 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 				c.app.SolvePoll(questionNumber, ansNumber)
 				c.sender.SendInlineKeyboardReply(
 					callbackQuery,
-					generateUserSolve(callbackQuery.From.UserName),
+					generateUserSolve(username),
 				)
-				currentPoll := c.app.Polls[questionNumber]
 				c.sender.EditMessageMarkup(
 					currentPoll.Message,
 					nil,
@@ -136,20 +142,20 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 						"`%s`\nПравильный ответ - ___%s___.\nОтветил - @%s",
 						currentPoll.Message.Text,
 						currentPoll.GetSuccess(),
-						callbackQuery.From.UserName,
+						username,
 					),
 					"markdown",
 				)
 			} else {
 				c.sender.SendInlineKeyboardReply(
 					callbackQuery,
-					generateWrong(callbackQuery.From.UserName),
+					generateWrong(username),
 				)
 			}
 		} else {
 			c.sender.SendInlineKeyboardReply(
 				callbackQuery,
-				generateSolved(callbackQuery.From.UserName),
+				generateSolved(username),
 			)
 		}
 	} else {
