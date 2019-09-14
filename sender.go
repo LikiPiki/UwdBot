@@ -17,6 +17,10 @@ type Sender struct {
 	bot *tgbotapi.BotAPI
 }
 
+func (s *Sender) Init(bot *tgbotapi.BotAPI) {
+	s.bot = bot
+}
+
 func (s *Sender) SendMessageToUWDChat(message string) {
 	var reply tgbotapi.MessageConfig
 	reply = tgbotapi.NewMessage(
@@ -29,10 +33,6 @@ func (s *Sender) SendMessageToUWDChat(message string) {
 	if err != nil {
 		log.Println(err)
 	}
-}
-
-func (s *Sender) Init(bot *tgbotapi.BotAPI) {
-	s.bot = bot
 }
 
 func (s *Sender) SendSticker(msg *tgbotapi.Message, stickerID string) {

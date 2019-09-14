@@ -131,10 +131,28 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 	}
 	ok := c.app.CheckNumberQuestions(questionNumber, ansNumber)
 	currentPoll := c.app.Polls[questionNumber]
-	if currentPoll.HaveMember(username) {
+	memberClicked := currentPoll.HaveMember(username)
+	if memberClicked >= 2 {
 		return
 	}
 	currentPoll.AddMember(username)
+	if memberClicked == 1 {
+		if username == "" {
+			c.sender.SendInlineKeyboardReply(
+				callbackQuery,
+				"Чувак, у тебя только одна попытка!",
+			)
+		} else {
+			c.sender.SendInlineKeyboardReply(
+				callbackQuery,
+				fmt.Sprintf(
+					"@%s, у тебя только одна попытка!",
+					username,
+				),
+			)
+		}
+		return
+	}
 
 	if ok {
 		check, solved := c.app.CheckPoll(questionNumber, ansNumber)
