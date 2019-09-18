@@ -163,12 +163,7 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 				)
 				c.sender.EditMessageText(
 					currentPoll.Message,
-					fmt.Sprintf(
-						"`%s`\nПравильный ответ - ___%s___.\nОтветил - @%s",
-						currentPoll.Message.Text,
-						currentPoll.GetSuccess(),
-						username,
-					),
+					currentPoll.GetPollResults(username),
 					"markdown",
 				)
 			} else {

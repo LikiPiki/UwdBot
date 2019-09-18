@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -29,6 +30,38 @@ func (p *Poll) GetSuccess() string {
 
 func (p *Poll) HaveMember(name string) int {
 	return p.members[name]
+}
+
+func (p *Poll) GetPollResults(winner string) string {
+	result := fmt.Sprintf(
+		"`%s`\nПравильный ответ - ___%s___.\nОтветил - @%s",
+		p.Message.Text,
+		p.GetSuccess(),
+		winner,
+	)
+	if len(p.members) > 1 {
+		result += fmt.Sprintf(
+			"\nПытались: ___%s___",
+			p.getAllMembersUsernamesString(winner),
+		)
+	}
+	return result
+}
+
+func (p *Poll) getAllMembersUsernamesString(winner string) (result string) {
+	first := true
+	for username := range p.members {
+		if username == winner {
+			continue
+		}
+		if !first {
+			result += fmt.Sprintf(", %s", username)
+		} else {
+			result += username
+			first = false
+		}
+	}
+	return result
 }
 
 func (p *Poll) AddMember(name string) {
