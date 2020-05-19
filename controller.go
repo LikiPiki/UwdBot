@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type Controller struct {
@@ -43,9 +43,18 @@ func (c Controller) Switch(updates tgbotapi.UpdatesChannel) {
 			if c.app.IsAdmin(msg.From.UserName) {
 				c.handleAdminCommands(msg)
 			}
-			c.handleJoinMember(
-				msg,
-			)
+
+			switch {
+			case msg.NewChatMembers != nil && len(*msg.NewChatMembers) > 0:
+				c.handleJoinMembers(
+					msg,
+				)
+			case msg.LeftChatMember != nil:
+				// case msg.LeftChatMember != nil && !msg.LeftChatMember.IsBot:
+				c.handleLeftMembers(
+					msg,
+				)
+			}
 		}
 
 	}
@@ -60,17 +69,24 @@ func (c Controller) handleAdminCommands(msg *tgbotapi.Message) {
 	}
 }
 
-func (c Controller) handleJoinMember(msg *tgbotapi.Message) {
-	// joined new user
-	if msg.ReplyToMessage == nil && msg.Text == "" {
-
-		text := GetJoin(msg.From.UserName)
-
-		go c.sender.SendMarkdownReply(
+func (c Controller) handleLeftMembers(msg *tgbotapi.Message) {
+	if len(msg.LeftChatMember.UserName) > 0 {
+		c.sender.SendReply(
 			msg,
-			text,
+			fmt.Sprintf("Пошёл в жопу @%s!", msg.LeftChatMember.UserName),
 		)
+	} else {
+		c.sender.SendReply(msg, "Пошёл в жопу!")
 	}
+}
+
+func (c Controller) handleJoinMembers(msg *tgbotapi.Message) {
+	text := GetJoin((*msg.NewChatMembers)[0].UserName)
+
+	go c.sender.SendMarkdownReply(
+		msg,
+		text,
+	)
 }
 
 func (c Controller) handleCommand(msg *tgbotapi.Message) {
