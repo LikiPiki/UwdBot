@@ -62,6 +62,21 @@ func (s Sender) SendReply(msg *tgbotapi.Message, text string) {
 	}
 }
 
+func (s Sender) SendReplyToMessage(msg *tgbotapi.Message, text string) {
+	var reply tgbotapi.MessageConfig
+	reply = tgbotapi.NewMessage(
+		msg.Chat.ID,
+		text,
+	)
+	reply.ReplyToMessageID = msg.MessageID
+
+	_, err := s.bot.Send(reply)
+
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func (s Sender) SendMarkdownReply(msg *tgbotapi.Message, text string) {
 	var reply tgbotapi.MessageConfig
 	reply = tgbotapi.NewMessage(
@@ -104,7 +119,16 @@ func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) tgbotapi.Mes
 	if err != nil {
 		log.Println(err)
 	}
+
 	return message
+}
+
+func (s Sender) SendCasinoMiniGame(msg *tgbotapi.Message) {
+	miniGame, status := generateCasino()
+	s.SendReply(msg, miniGame)
+	if status {
+		s.SendReplyToMessage(msg, "Уважаемый, вы победили...")
+	}
 }
 
 func (s Sender) EditMessageMarkup(msg *tgbotapi.Message, markup *tgbotapi.InlineKeyboardMarkup) tgbotapi.Message {

@@ -27,6 +27,24 @@ func generateKek() string {
 	return generatePhrase(phrases)
 }
 
+func generateCasino() (string, bool) {
+	icons := []string{
+		"🚑", "🎡", "💊", "🐵", "🍒", "🍾",
+	}
+	iconsNum := []int{0, 0, 0}
+	var win string
+	status := false
+	for i := 0; i < 3; i++ {
+		iconsNum[i] = rand.Intn(len(icons))
+		win = win + icons[iconsNum[i]]
+	}
+	// check winner
+	if (iconsNum[0] == iconsNum[1]) && (iconsNum[1] == iconsNum[2]) {
+		status = true
+	}
+	return win, status
+}
+
 func generateSolved() string {
 	phrases := []string{
 		"Дядя, мы это уже решили!!",
