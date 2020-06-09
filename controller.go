@@ -50,7 +50,6 @@ func (c Controller) Switch(updates tgbotapi.UpdatesChannel) {
 					msg,
 				)
 			case msg.LeftChatMember != nil:
-				// case msg.LeftChatMember != nil && !msg.LeftChatMember.IsBot:
 				c.handleLeftMembers(
 					msg,
 				)

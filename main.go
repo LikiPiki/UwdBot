@@ -7,17 +7,32 @@ import (
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/joho/godotenv"
 	"golang.org/x/net/proxy"
 )
 
 const (
-	TOKEN = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
-	// DEBUG token
-	// TOKEN = "427558135:AAEnSxpTD_wOMxhoWjVzrNO5YQa3vZHbEMM"
 	PROXY = "195.201.103.36:1080"
 )
 
+var (
+	TOKEN = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
+)
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found. Using PRODUCTION enviroment!")
+	}
+}
+
 func main() {
+	botToken, exists := os.LookupEnv("TOKEN")
+
+	// Change bot token to .env token, or use production TOKEN
+	if exists {
+		TOKEN = botToken
+	}
+
 	dialer, err := proxy.SOCKS5("tcp", PROXY, &proxy.Auth{
 		User:     "kirillq",
 		Password: "pahnaaaale",
