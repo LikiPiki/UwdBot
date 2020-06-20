@@ -1,10 +1,7 @@
-package main
+package sender
 
 import (
-	"fmt"
 	"log"
-
-	data "UwdBot/database"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -64,6 +61,14 @@ func (s Sender) SendReply(msg *tgbotapi.Message, text string) {
 	}
 }
 
+func (s Sender) Send(msgConfig *tgbotapi.MessageConfig) *tgbotapi.Message {
+	msg, err := s.bot.Send(msgConfig)
+	if err != nil {
+		log.Println(err)
+	}
+	return &msg
+}
+
 func (s Sender) SendReplyToMessage(msg *tgbotapi.Message, text string) {
 	var reply tgbotapi.MessageConfig
 	reply = tgbotapi.NewMessage(
@@ -98,44 +103,6 @@ func (s Sender) SendMarkdownReply(msg *tgbotapi.Message, text string) {
 
 func (s Sender) SendInlineKeyboardReply(CallbackQuery *tgbotapi.CallbackQuery, text string) {
 	s.bot.AnswerCallbackQuery(tgbotapi.NewCallback(CallbackQuery.ID, text))
-}
-
-func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) tgbotapi.Message {
-	var reply tgbotapi.MessageConfig
-	reply = tgbotapi.NewMessage(
-		msg.Chat.ID,
-		poll.Data.Question,
-	)
-	keyboard := tgbotapi.InlineKeyboardMarkup{}
-	for k, class := range poll.Data.Answers {
-		var row []tgbotapi.InlineKeyboardButton
-		btn := tgbotapi.NewInlineKeyboardButtonData(class, fmt.Sprintf("poll|%d|%d", id, k))
-		row = append(row, btn)
-		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
-	}
-	reply.ReplyMarkup = keyboard
-
-	message, err := s.bot.Send(reply)
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	return message
-}
-
-func (s Sender) SendCasinoMiniGame(msg *tgbotapi.Message, user *data.User) {
-	if user.Coins < 10 {
-		s.SendReplyToMessage(msg, "Слишком мало денег, накопи еще и приходи потом!")
-		return
-	}
-	user.DecreaseMoney(10)
-	miniGame, status := generateCasino()
-	s.SendReply(msg, miniGame)
-	if status {
-		user.AddMoney(50)
-		s.SendReplyToMessage(msg, "Уважаемый, вы победили... + 50💰")
-	}
 }
 
 func (s Sender) EditMessageMarkup(msg *tgbotapi.Message, markup *tgbotapi.InlineKeyboardMarkup) tgbotapi.Message {

@@ -2,93 +2,12 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 )
 
-func generatePhrase(phrases []string) string {
-	return phrases[rand.Intn(len(phrases))]
-}
-
-func generatePhraseWithUsername(username string, phrases []string) string {
-	for i, phrase := range phrases {
-		phrases[i] = fmt.Sprintf(phrase, username)
-	}
-	return generatePhrase(phrases)
-}
-
-func generateKek() string {
-	phrases := []string{
-		"Кек",
-		"кпек",
-		"пук",
-		"КЕКУС",
-		"КЕК",
-	}
-	return generatePhrase(phrases)
-}
-
-func generateCasino() (string, bool) {
-	icons := []string{
-		"🚑", "🎡", "💊", "🐵", "🍒", "🍾",
-	}
-	iconsNum := []int{0, 0, 0}
-	var win string
-	status := false
-	for i := 0; i < 3; i++ {
-		iconsNum[i] = rand.Intn(len(icons))
-		win = win + icons[iconsNum[i]]
-	}
-	// check winner
-	if (iconsNum[0] == iconsNum[1]) && (iconsNum[1] == iconsNum[2]) {
-		status = true
-	}
-	return win, status
-}
-
-func generateSolved() string {
-	phrases := []string{
-		"Дядя, мы это уже решили!!",
-		"Ну это уже решена чишо)",
-		"ну что, это правильно!",
-		"верно!",
-		"Никита был бы доволен твоим интелектом!",
-		"Верный ответ !",
-	}
-	return generatePhrase(phrases)
-}
-
-func generateWrong() string {
-	phrases := []string{
-		"ну близко, но не то",
-		"я бы выбрал вариант выше, чем твой",
-		"Это конечно кек. Но неверно",
-		"Это конечно кек. Но неверно",
-		"Это неверно...",
-		"УУУУУУУ нееее, не то...",
-	}
-	return generatePhrase(phrases)
-}
-
-func GenerateRiot() (int, string) {
-	phrases := []string{
-		"Он нам не бонан!!!",
-		"Бонан ЛОХ!",
-		"@banannakryvay пишев ты!",
-		"УУУУУ бонан самый худший админ",
-	}
-	stickers := []string{
-		"CAADAgADBgADdPqvC4g0vr9WJeDGAg",
-	}
-	return GetStickerOrText(stickers, phrases)
-}
-
-func GetStickerOrText(stickers, phrases []string) (int, string) {
-	chance := rand.Intn(2)
-	if chance == Sticker {
-		return chance, stickers[rand.Intn(len(stickers))]
-	}
-	return chance, phrases[rand.Intn(len(phrases))]
-}
+const (
+	Message = 0
+	Sticker = 1
+)
 
 func GetJoin(username string) string {
 	if len(username) == 0 {

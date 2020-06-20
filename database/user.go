@@ -10,8 +10,8 @@ type User struct {
 	Username   string
 	Coins      int
 	Reputation int
-	blacklist  bool
-	isAdmin    bool
+	Blacklist  bool
+	IsAdmin    bool
 }
 
 func (u *User) CreateNewUser() (uint64, error) {
@@ -74,8 +74,8 @@ func (u *User) FindUserByID(id int) (User, error) {
 		&u.ID,
 		&u.Username,
 		&u.UserID,
-		&u.blacklist,
-		&u.isAdmin,
+		&u.Blacklist,
+		&u.IsAdmin,
 		&u.Coins,
 		&u.Reputation,
 	)

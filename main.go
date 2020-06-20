@@ -8,6 +8,8 @@ import (
 	"strconv"
 
 	"UwdBot/database"
+	pl "UwdBot/plug"
+	"UwdBot/sender"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
@@ -15,7 +17,8 @@ import (
 )
 
 const (
-	PROXY = "195.201.103.36:1080"
+	PROXY       = "195.201.103.36:1080"
+	UWD_CHAT_ID = -1001094145433
 )
 
 var (
@@ -47,7 +50,7 @@ func main() {
 		}
 	} else {
 		// UWD CHAT ID
-		CHAT_ID = -1001094145433
+		CHAT_ID = UWD_CHAT_ID
 	}
 
 	dialer, err := proxy.SOCKS5("tcp", PROXY, &proxy.Auth{
@@ -78,10 +81,26 @@ func main() {
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
-	var sender Sender
+	var sender sender.Sender
 	sender.Init(bot)
-	app := InitApp()
 
+	// Custom sets variabels to plugins
+	profiler := pl.Profiler{}
+	profiler.SetChatID(CHAT_ID)
+
+	// Register plugins here
+	plugins := pl.Plugins{
+		&pl.Base{},
+		&pl.Wars{},
+		&pl.Minigames{},
+		&profiler,
+	}
+
+	for _, plug := range plugins {
+		plug.Init(&sender)
+	}
+
+	app := InitApp(plugins)
 	controller := InitController(bot, app, &sender)
 
 	u := tgbotapi.NewUpdate(0)
