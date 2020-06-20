@@ -5,6 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+
+	"UwdBot/database"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
@@ -16,12 +19,13 @@ const (
 )
 
 var (
-	TOKEN = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
+	TOKEN   = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
+	CHAT_ID int64
 )
 
 func init() {
+	log.Print("No .env file found. Using PRODUCTION enviroment!")
 	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found. Using PRODUCTION enviroment!")
 	}
 }
 
@@ -31,6 +35,19 @@ func main() {
 	// Change bot token to .env token, or use production TOKEN
 	if exists {
 		TOKEN = botToken
+	}
+
+	var chatID string
+	chatID, exists = os.LookupEnv("CHAT_ID")
+	if exists {
+		var err error
+		CHAT_ID, err = strconv.ParseInt(chatID, 10, 32)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// UWD CHAT ID
+		CHAT_ID = -1001094145433
 	}
 
 	dialer, err := proxy.SOCKS5("tcp", PROXY, &proxy.Auth{
@@ -44,6 +61,9 @@ func main() {
 	} else {
 		fmt.Println("Success connecting to proxy!")
 	}
+
+	database.InitDB()
+	defer database.CloseDatabase()
 
 	httpTransport := &http.Transport{}
 	httpClient := &http.Client{Transport: httpTransport}

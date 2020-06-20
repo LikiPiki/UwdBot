@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+
+	data "UwdBot/database"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -39,6 +42,7 @@ func (c Controller) Switch(updates tgbotapi.UpdatesChannel) {
 
 		if msg.IsCommand() {
 			c.handleCommand(msg)
+			c.handleRegisterUserCommand(msg)
 		} else {
 			if c.app.IsAdmin(msg.From.UserName) {
 				c.handleAdminCommands(msg)
@@ -63,6 +67,7 @@ func (c Controller) handleAdminCommands(msg *tgbotapi.Message) {
 	messageTextBytes := []byte(msg.Text)
 	regexSay := regexp.MustCompile(`@say ([^\n]*)`)
 	indexes := regexSay.FindSubmatchIndex(messageTextBytes)
+
 	if len(indexes) == 4 {
 		go c.sender.SendMessageToUWDChat(msg.Text[indexes[2]:indexes[3]])
 	}
@@ -99,6 +104,7 @@ func (c Controller) handleCommand(msg *tgbotapi.Message) {
 			)
 		}
 	case "kek":
+		fmt.Println("chat id is ", msg.Chat.ID)
 		go c.sender.SendReply(
 			msg,
 			generateKek(),
@@ -118,11 +124,74 @@ func (c Controller) handleCommand(msg *tgbotapi.Message) {
 			id,
 		)
 		c.app.UpdatePollMessage(id, &msg)
+	case "reg":
+		if CHAT_ID != msg.Chat.ID {
+			c.sender.SendReplyToMessage(msg, "Этот функционал не работет в этом чате")
+		}
+		go c.sender.SendReplyToMessage(
+			msg,
+			c.app.RegisterNewUser(msg),
+		)
+	}
+
+}
+
+func (c Controller) handleRegisterUserCommand(msg *tgbotapi.Message) {
+	// For binary search put commands in alphabetic
+	commandList := []string{"casino", "me", "shop", "unreg"}
+	command := msg.Command()
+	user := data.User{}
+
+	// Binary search command
+	i := sort.Search(
+		len(commandList),
+		func(i int) bool {
+			return command <= commandList[i]
+		},
+	)
+	if i < len(commandList) && commandList[i] == command {
+	} else {
+		return
+	}
+
+	if CHAT_ID != msg.Chat.ID {
+		c.sender.SendReplyToMessage(msg, "Этот функционал не работет в этом чате")
+		return
+	}
+
+	// check user exits
+	var err error
+	user, err = user.FindUserByID(msg.From.ID)
+
+	if err != nil || user.ID == 0 {
+		c.sender.SendReplyToMessage(msg, "Ты не зарегистрирован, сначала /reg")
+		return
+	}
+
+	switch command {
+	case "unreg":
+		go c.sender.SendReplyToMessage(
+			msg,
+			c.app.UnregUser(msg),
+		)
+	case "me":
+		go c.sender.SendMarkdownReply(
+			msg,
+			c.app.ShowUserInfo(msg),
+		)
+	// Wars commands
+	case "shop":
+		go c.sender.SendMarkdownReply(
+			msg,
+			c.app.GetShop(msg),
+		)
 	case "casino":
 		go c.sender.SendCasinoMiniGame(
 			msg,
+			&user,
 		)
 	}
+
 }
 
 func (c Controller) handleCallbackQuery(update tgbotapi.Update) {
@@ -138,6 +207,7 @@ func (c Controller) handleCallbackQuery(update tgbotapi.Update) {
 
 func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, words []string) {
 	username := callbackQuery.From.UserName
+	userID := callbackQuery.From.ID
 	num, ans := words[1], words[2]
 	questionNumber, err := strconv.Atoi(num)
 	if err != nil {
@@ -182,7 +252,7 @@ func (c Controller) handlePollCallback(callbackQuery *tgbotapi.CallbackQuery, wo
 				)
 				c.sender.EditMessageText(
 					currentPoll.Message,
-					currentPoll.GetPollResults(username),
+					currentPoll.GetPollResults(username, userID),
 					"markdown",
 				)
 			} else {

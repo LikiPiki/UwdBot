@@ -10,8 +10,10 @@ import (
 	"strconv"
 	"time"
 
+	data "UwdBot/database"
+
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -19,6 +21,35 @@ const (
 	poll_api_url     = "https://engine.lifeis.porn/api/millionaire.php"
 	LEN              = 20
 )
+
+var (
+	UserRanks = []Rank{
+		{"Король", 1000, 1000},
+		{"Депутат от народа", 0, 500},
+		{"Зажиточный", 500, 300},
+		{"Программист", 300, 300},
+		{"Только что сдал ЕГЭ", 150, 50},
+		{"Пельмень", 100, 100},
+		{"Днарь", 0, 50},
+		{"Изгой", 0, 0},
+	}
+)
+
+// for test only
+type Rank struct {
+	Rank       string
+	Coins      int
+	Reputation int
+}
+
+func GetRank(user data.User) string {
+	for _, rank := range UserRanks {
+		if (rank.Coins <= user.Coins) && (rank.Reputation <= user.Reputation) {
+			return rank.Rank
+		}
+	}
+	return UserRanks[len(UserRanks)-1].Rank
+}
 
 type App struct {
 	Polls  []Poll
@@ -152,4 +183,80 @@ func (a *App) CheckPoll(num, ans int) (bool, bool) {
 		return true, a.Polls[num].Data.Solved
 	}
 	return false, a.Polls[num].Data.Solved
+}
+
+// Registration and Delete account
+func (a *App) RegisterNewUser(msg *tgbotapi.Message) string {
+	user := data.User{}
+	count, err := user.CountUsersWithID(msg.From.ID)
+	if err != nil {
+		log.Panicln(err)
+		return "Что то пошло не так..."
+	}
+	if count > 0 {
+		return "Ты уже зарегистрирован!"
+	}
+
+	user.UserID = uint64(msg.From.ID)
+	user.Username = msg.From.UserName
+	_, err = user.CreateNewUser()
+
+	if err != nil {
+		return "Не удалось добавить. Попробуй позже..."
+	}
+
+	return "Вы успешно прошли регистрацию. /me"
+}
+
+func (a *App) UnregUser(msg *tgbotapi.Message) string {
+	user := data.User{}
+	user.DeleteUser(msg.From.ID)
+	return "Ну заходи как нибудь еще, что делать..."
+}
+
+func (a *App) ShowUserInfo(msg *tgbotapi.Message) string {
+	var err error
+	var user data.User
+	user, err = user.FindUserByID(msg.From.ID)
+	if err != nil {
+		log.Println(err)
+	}
+
+	var repStat, coinsStat float32
+	repStat, coinsStat, err = user.GetUserStatistics()
+	if err != nil {
+		log.Println(err)
+	}
+
+	rank := GetRank(user)
+
+	return fmt.Sprintf(
+		"Привет ***@%s*** - ___%s___\nТвоя репутация: ***%d\n***💰: ***%d***\n\nТы на ***%d***%% круче остальных и на ***%d***%% богаче!",
+		user.Username,
+		rank,
+		user.Reputation,
+		user.Coins,
+		int(repStat*100),
+		int(coinsStat*100),
+	)
+}
+
+func (a *App) GetShop(msg *tgbotapi.Message) string {
+	weap := data.Weapon{}
+	weapons, err := weap.GetAllWeapons()
+	if err != nil {
+		return "Не удалось загрузить магазин..."
+	}
+	reply := "***Уютный shop 🛒 ***\n\n***Оружие:***\n"
+	for _, w := range weapons {
+		reply += fmt.Sprintf(
+			"%d) ___%s___ %d🗡️, %d💰\n",
+			w.ID,
+			w.Name,
+			w.Power,
+			w.Cost,
+		)
+	}
+	reply += "\n___Интересный стафф:___\nПоявится в скором времени...\n\n___Купить товар /buy номер товара___"
+	return reply
 }

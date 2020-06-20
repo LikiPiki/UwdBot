@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	data "UwdBot/database"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -104,7 +106,6 @@ func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) tgbotapi.Mes
 		msg.Chat.ID,
 		poll.Data.Question,
 	)
-	fmt.Println(poll.Data)
 	keyboard := tgbotapi.InlineKeyboardMarkup{}
 	for k, class := range poll.Data.Answers {
 		var row []tgbotapi.InlineKeyboardButton
@@ -123,11 +124,17 @@ func (s Sender) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) tgbotapi.Mes
 	return message
 }
 
-func (s Sender) SendCasinoMiniGame(msg *tgbotapi.Message) {
+func (s Sender) SendCasinoMiniGame(msg *tgbotapi.Message, user *data.User) {
+	if user.Coins < 10 {
+		s.SendReplyToMessage(msg, "Слишком мало денег, накопи еще и приходи потом!")
+		return
+	}
+	user.DecreaseMoney(10)
 	miniGame, status := generateCasino()
 	s.SendReply(msg, miniGame)
 	if status {
-		s.SendReplyToMessage(msg, "Уважаемый, вы победили...")
+		user.AddMoney(50)
+		s.SendReplyToMessage(msg, "Уважаемый, вы победили... + 50💰")
 	}
 }
 

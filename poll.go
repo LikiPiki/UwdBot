@@ -5,7 +5,9 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	data "UwdBot/database"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 type QuestionsData struct {
@@ -32,13 +34,27 @@ func (p *Poll) HaveMember(name string) int {
 	return p.members[name]
 }
 
-func (p *Poll) GetPollResults(winner string) string {
+func (p *Poll) GetPollResults(winner string, winnerID int) string {
 	result := fmt.Sprintf(
 		"`%s`\nПравильный ответ - ___%s___.\nОтветил - @%s",
 		p.Message.Text,
 		p.GetSuccess(),
 		winner,
 	)
+
+	var user data.User
+	var err error
+
+	user, err = user.FindUserByID(winnerID)
+	if (err == nil) && (user.ID > 0) {
+		money := rand.Intn(11)
+		result += fmt.Sprintf(
+			" + %d💰",
+			money,
+		)
+		user.AddMoney(money)
+	}
+
 	if len(p.members) > 1 {
 		result += fmt.Sprintf(
 			"\nПытались: ___%s___",
