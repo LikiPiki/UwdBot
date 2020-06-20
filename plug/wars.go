@@ -24,6 +24,45 @@ func (w *Wars) GetShop(msg *tgbotapi.Message) string {
 			w.Cost,
 		)
 	}
-	reply += "\n___Интересный стафф:___\nПоявится в скором времени...\n\n___Купить товар /buy номер товара___"
+	reply += "\n___Интересный стафф:___\nПоявится в скором времени...\n\n___Купить товар - реплай на сообщение buy номер товара___"
 	return reply
+}
+
+func (w *Wars) buyItem(item int, msg *tgbotapi.Message) {
+	var err error
+	var user data.User
+	user, err = user.FindUserByID(msg.From.ID)
+	if err != nil {
+		w.c.SendReplyToMessage(msg, "Вы не зарегистрированы /reg")
+		return
+	}
+	var weapon data.Weapon
+	weapon, err = weapon.GetWeaponsByID(item)
+	if err != nil {
+		w.c.SendReplyToMessage(msg, "Некоректный номер товара!")
+		return
+	}
+
+	if user.Coins >= weapon.Cost {
+		user.DecreaseMoney(weapon.Cost)
+		user.AddPower(weapon.Power)
+		w.c.SendMarkdownReply(
+			msg,
+			fmt.Sprintf(
+				"Списано ***%d***💰, куплен(а): ___%s___!\n\n Прибавлено %d к боевой мощи!",
+				weapon.Cost,
+				weapon.Name,
+				weapon.Power,
+			),
+		)
+	} else {
+		w.c.SendMarkdownReply(
+			msg,
+			fmt.Sprintf(
+				"Вам не хватает ***%d***💰, чтобы купить ___%s___!",
+				weapon.Cost-user.Coins,
+				weapon.Name,
+			),
+		)
+	}
 }

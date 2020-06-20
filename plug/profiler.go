@@ -64,11 +64,12 @@ func (p *Profiler) showUserInfo(msg *tgbotapi.Message) string {
 	rank := getRank(user)
 
 	return fmt.Sprintf(
-		"Привет ***@%s*** - ___%s___\nТвоя репутация: ***%d\n***💰: ***%d***\n\nТы на ***%d***%% круче остальных и на ***%d***%% богаче!",
+		"***ЛИЧНАЯ КАРТОЧКА***\nПривет ***@%s*** - ___%s___\nТвоя репутация: ***%d\n***Монеты💰: ***%d***\nБоевая мощь: ***%d***\n\nТы на ***%d***%% круче остальных и на ***%d***%% богаче!",
 		user.Username,
 		rank,
 		user.Reputation,
 		user.Coins,
+		user.WeaponsPower,
 		int(repStat*100),
 		int(coinsStat*100),
 	)
@@ -78,7 +79,6 @@ func (p *Profiler) registerNewUser(msg *tgbotapi.Message) string {
 	user := data.User{}
 	count, err := user.CountUsersWithID(msg.From.ID)
 	if err != nil {
-		log.Panicln(err)
 		return "Что то пошло не так..."
 	}
 	if count > 0 {

@@ -11,6 +11,8 @@ import (
 type Plugin interface {
 	// Plugin initialization
 	Init(s *sender.Sender)
+	// Handle messages (not commands, like regex queries)
+	HandleMessages(msg *tgbotapi.Message)
 	// Not register, simple commands
 	HandleCommands(msg *tgbotapi.Message, command string)
 	// Commands for registered users only

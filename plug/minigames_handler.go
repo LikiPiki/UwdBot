@@ -21,6 +21,8 @@ func (m *Minigames) Init(s *sender.Sender) {
 	m.Polls = []Poll{}
 }
 
+func (m *Minigames) HandleMessages(msg *tgbotapi.Message) {}
+
 func (m *Minigames) HandleCommands(msg *tgbotapi.Message, command string) {}
 
 func (m *Minigames) HandleRegisterCommands(msg *tgbotapi.Message, command string, user *data.User) {

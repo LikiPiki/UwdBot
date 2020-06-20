@@ -55,6 +55,10 @@ func (c *Controller) Switch(updates tgbotapi.UpdatesChannel) {
 				c.handleAdminCommands(msg)
 			}
 
+			for _, plug := range c.app.Plugs {
+				plug.HandleMessages(msg)
+			}
+
 			switch {
 			case msg.NewChatMembers != nil && len(*msg.NewChatMembers) > 0:
 				c.handleJoinMembers(
@@ -129,7 +133,7 @@ func (c *Controller) handleRegisterUserCommand(msg *tgbotapi.Message) {
 	var err error
 	user, err = user.FindUserByID(msg.From.ID)
 
-	if err != nil || user.ID == 0 {
+	if err != nil {
 		c.sender.SendReplyToMessage(msg, "Ты не зарегистрирован, сначала /reg")
 		return
 	}

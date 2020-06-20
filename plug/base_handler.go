@@ -18,6 +18,8 @@ func (b *Base) Init(s *sender.Sender) {
 	b.c = s
 }
 
+func (b *Base) HandleMessages(msg *tgbotapi.Message) {}
+
 func (b *Base) HandleCommands(msg *tgbotapi.Message, command string) {
 	switch command {
 	case "last":

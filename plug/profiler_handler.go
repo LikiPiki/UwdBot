@@ -15,6 +15,8 @@ func (p *Profiler) Init(s *sender.Sender) {
 	p.c = s
 }
 
+func (p *Profiler) HandleMessages(msg *tgbotapi.Message) {}
+
 func (p *Profiler) HandleCommands(msg *tgbotapi.Message, command string) {
 	switch command {
 	case "reg":

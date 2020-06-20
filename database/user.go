@@ -5,13 +5,14 @@ import (
 )
 
 type User struct {
-	ID         uint64
-	UserID     uint64
-	Username   string
-	Coins      int
-	Reputation int
-	Blacklist  bool
-	IsAdmin    bool
+	ID           uint64
+	UserID       uint64
+	Username     string
+	Coins        int
+	Reputation   int
+	Blacklist    bool
+	IsAdmin      bool
+	WeaponsPower int
 }
 
 func (u *User) CreateNewUser() (uint64, error) {
@@ -67,7 +68,7 @@ func (u *User) DeleteUser(id int) (int, error) {
 func (u *User) FindUserByID(id int) (User, error) {
 	row := db.QueryRow(
 		context.Background(),
-		"SELECT id, username, userid, blacklist, isadmin, coins, reputation FROM users WHERE userID = $1",
+		"SELECT id, username, userid, blacklist, isadmin, coins, reputation, weapons_power FROM users WHERE userID = $1",
 		id,
 	)
 	err := row.Scan(
@@ -78,6 +79,7 @@ func (u *User) FindUserByID(id int) (User, error) {
 		&u.IsAdmin,
 		&u.Coins,
 		&u.Reputation,
+		&u.WeaponsPower,
 	)
 	if err != nil {
 		return User{}, err
@@ -109,6 +111,15 @@ func (u *User) AddMoney(money int) {
 		"UPDATE users SET coins = coins + $1 WHERE userid = $2",
 		money,
 		u.UserID,
+	)
+}
+
+func (u *User) AddPower(power int) {
+	_, _ = db.Exec(
+		context.Background(),
+		"UPDATE users SET weapons_power = weapons_power + $1 WHERE id = $2",
+		power,
+		u.ID,
 	)
 }
 

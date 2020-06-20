@@ -3,6 +3,8 @@ package plug
 import (
 	data "UwdBot/database"
 	"UwdBot/sender"
+	"regexp"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -13,6 +15,19 @@ type Wars struct {
 
 func (w *Wars) Init(s *sender.Sender) {
 	w.c = s
+}
+
+func (w *Wars) HandleMessages(msg *tgbotapi.Message) {
+	re := regexp.MustCompile("^buy (\\d+)")
+	match := re.FindStringSubmatch(msg.Text)
+	if len(match) > 1 {
+		itemNumber, err := strconv.Atoi(match[1])
+		if err != nil {
+			w.c.SendReplyToMessage(msg, "Не правильно указан номер товара")
+			return
+		}
+		w.buyItem(itemNumber, msg)
+	}
 }
 
 func (w *Wars) HandleCommands(msg *tgbotapi.Message, command string) {}
