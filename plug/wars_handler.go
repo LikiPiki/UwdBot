@@ -39,6 +39,11 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 			msg,
 			w.GetShop(msg),
 		)
+	case "top":
+		go w.c.SendMarkdownReply(
+			msg,
+			w.GetTopPlayers(usersInTopList),
+		)
 	}
 }
 
@@ -49,5 +54,6 @@ func (w *Wars) HandleAdminCommands(msg *tgbotapi.Message) {}
 func (w *Wars) GetRegisteredCommands() []string {
 	return []string{
 		"shop",
+		"top",
 	}
 }

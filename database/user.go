@@ -15,6 +15,8 @@ type User struct {
 	WeaponsPower int
 }
 
+type Users []User
+
 func (u *User) CreateNewUser() (uint64, error) {
 	row := db.QueryRow(
 		context.Background(),
@@ -86,6 +88,37 @@ func (u *User) FindUserByID(id int) (User, error) {
 	}
 
 	return *u, nil
+}
+
+func (u *User) GetTopUsers(count int) (Users, error) {
+	rows, err := db.Query(
+		context.Background(),
+		"SELECT id, username, userid, blacklist, isadmin, coins, reputation, weapons_power FROM users ORDER BY reputation desc, coins DESC LIMIT $1",
+		count,
+	)
+	users := make(Users, 0)
+	if err != nil {
+		return Users{}, err
+	}
+
+	for rows.Next() {
+		err := rows.Scan(
+			&u.ID,
+			&u.Username,
+			&u.UserID,
+			&u.Blacklist,
+			&u.IsAdmin,
+			&u.Coins,
+			&u.Reputation,
+			&u.WeaponsPower,
+		)
+
+		if err != nil {
+			return Users{}, err
+		}
+		users = append(users, *u)
+	}
+	return users, nil
 }
 
 func (u *User) GetUserStatistics() (repStat float32, coinsStat float32, err error) {

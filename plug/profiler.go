@@ -64,7 +64,7 @@ func (p *Profiler) showUserInfo(msg *tgbotapi.Message) string {
 	rank := getRank(user)
 
 	return fmt.Sprintf(
-		"***ЛИЧНАЯ КАРТОЧКА***\nПривет ***@%s*** - ___%s___\nТвоя репутация: ***%d\n***Монеты💰: ***%d***\nБоевая мощь: ***%d***\n\nТы на ***%d***%% круче остальных и на ***%d***%% богаче!",
+		"***ЛИЧНАЯ КАРТОЧКА***\nПривет ***@%s*** - ___%s___\nТвоя репутация 👑: ***%d\n***Монеты💰: ***%d***\nБоевая мощь: ***%d***\n\nТы на ***%d***%% круче остальных и на ***%d***%% богаче!",
 		user.Username,
 		rank,
 		user.Reputation,
@@ -87,6 +87,9 @@ func (p *Profiler) registerNewUser(msg *tgbotapi.Message) string {
 
 	user.UserID = uint64(msg.From.ID)
 	user.Username = msg.From.UserName
+	if len(user.Username) == 0 {
+		return "Для начала придумай себе nickname в Телеграме! "
+	}
 	_, err = user.CreateNewUser()
 
 	if err != nil {

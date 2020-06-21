@@ -2,11 +2,41 @@ package plug
 
 import (
 	"fmt"
+	"log"
 
 	data "UwdBot/database"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
+
+const (
+	usersInTopList = 10
+)
+
+func (w *Wars) GetTopPlayers(count int) string {
+	user := data.User{}
+	result := "***ТОП ИГРОКОВ:***\n"
+	topUsers, err := user.GetTopUsers(count)
+
+	log.Println(err)
+
+	if err != nil {
+		return "Что то пошло не так..."
+	}
+
+	for i, us := range topUsers {
+		result += fmt.Sprintf(
+			"%d) %s: %d👑 %d💰\n",
+			i+1,
+			us.Username,
+			us.Reputation,
+			us.Coins,
+		)
+	}
+
+	result += "\n___Региструйся и победи всех___ ***/reg***"
+	return result
+}
 
 func (w *Wars) GetShop(msg *tgbotapi.Message) string {
 	weap := data.Weapon{}

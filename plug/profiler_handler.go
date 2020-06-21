@@ -22,6 +22,7 @@ func (p *Profiler) HandleCommands(msg *tgbotapi.Message, command string) {
 	case "reg":
 		if CHAT_ID != msg.Chat.ID {
 			p.c.SendReplyToMessage(msg, "Этот функционал не работет в этом чате")
+			return
 		}
 		go p.c.SendReplyToMessage(
 			msg,
