@@ -97,7 +97,7 @@ func (s Sender) SendMarkdownReply(msg *tgbotapi.Message, text string) {
 	_, err := s.bot.Send(reply)
 
 	if err != nil {
-		log.Println(err)
+		log.Println("Send markdown error", err)
 	}
 }
 

@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"fmt"
+	"time"
 )
 
 type User struct {
@@ -13,6 +15,8 @@ type User struct {
 	Blacklist    bool
 	IsAdmin      bool
 	WeaponsPower int
+	ActiveDate   time.Time
+	Activity     int
 }
 
 type Users []User
@@ -70,7 +74,7 @@ func (u *User) DeleteUser(id int) (int, error) {
 func (u *User) FindUserByID(id int) (User, error) {
 	row := db.QueryRow(
 		context.Background(),
-		"SELECT id, username, userid, blacklist, isadmin, coins, reputation, weapons_power FROM users WHERE userID = $1",
+		"SELECT id, username, userid, blacklist, isadmin, coins, reputation, weapons_power, activ_date, activity FROM users WHERE userID = $1",
 		id,
 	)
 	err := row.Scan(
@@ -82,6 +86,8 @@ func (u *User) FindUserByID(id int) (User, error) {
 		&u.Coins,
 		&u.Reputation,
 		&u.WeaponsPower,
+		&u.ActiveDate,
+		&u.Activity,
 	)
 	if err != nil {
 		return User{}, err
@@ -112,6 +118,7 @@ func (u *User) GetTopUsers(count int) (Users, error) {
 			&u.Reputation,
 			&u.WeaponsPower,
 		)
+		fmt.Println(u)
 
 		if err != nil {
 			return Users{}, err

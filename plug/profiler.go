@@ -4,6 +4,7 @@ import (
 	data "UwdBot/database"
 	"fmt"
 	"log"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -30,6 +31,10 @@ type Rank struct {
 
 func (p *Profiler) SetChatID(ID int64) {
 	CHAT_ID = ID
+}
+
+func GetMarkdownUsername(username string) string {
+	return strings.ReplaceAll(username, "_", "\\_")
 }
 
 func getRank(user data.User) string {
@@ -64,12 +69,13 @@ func (p *Profiler) showUserInfo(msg *tgbotapi.Message) string {
 	rank := getRank(user)
 
 	return fmt.Sprintf(
-		"***ЛИЧНАЯ КАРТОЧКА***\nПривет ***@%s*** - ___%s___\nТвоя репутация 👑: ***%d\n***Монеты💰: ***%d***\nБоевая мощь: ***%d***\n\nТы на ***%d***%% круче остальных и на ***%d***%% богаче!",
+		"***ЛИЧНАЯ КАРТОЧКА***\nПривет ***@%s*** - ___%s___\nТвоя репутация 👑: ***%d\n***Монеты💰: ***%d***\nБоевая мощь: ***%d***\nНа сегодня осталось ***%d*** единиц активности!\n\nТы на ***%d***%% круче остальных и на ***%d***%% богаче!",
 		user.Username,
 		rank,
 		user.Reputation,
 		user.Coins,
 		user.WeaponsPower,
+		user.Activity,
 		int(repStat*100),
 		int(coinsStat*100),
 	)

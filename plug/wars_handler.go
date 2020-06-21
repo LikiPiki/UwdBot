@@ -10,7 +10,9 @@ import (
 )
 
 type Wars struct {
-	c *sender.Sender
+	c                 *sender.Sender
+	robbers           CaravanRobbers
+	robberingProgress bool
 }
 
 func (w *Wars) Init(s *sender.Sender) {
@@ -34,6 +36,11 @@ func (w *Wars) HandleCommands(msg *tgbotapi.Message, command string) {}
 
 func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, user *data.User) {
 	switch command {
+	case "caravan":
+		go w.c.SendMarkdownReply(
+			msg,
+			w.RobCaravans(msg, user),
+		)
 	case "shop":
 		go w.c.SendMarkdownReply(
 			msg,
@@ -55,5 +62,6 @@ func (w *Wars) GetRegisteredCommands() []string {
 	return []string{
 		"shop",
 		"top",
+		"caravan",
 	}
 }

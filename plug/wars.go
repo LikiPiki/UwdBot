@@ -11,11 +11,55 @@ import (
 
 const (
 	usersInTopList = 10
+	robCount       = 2
 )
+
+type CaravanRobber struct {
+	UserID   uint64
+	Username string
+	Power    int
+}
+
+type CaravanRobbers [robCount]CaravanRobber
+
+func (c *CaravanRobbers) checkRobbersCount() int {
+	count := 0
+	for _, caravan := range c {
+		if caravan.UserID != 0 {
+			count++
+		}
+	}
+	return count
+}
+
+func (w *Wars) RobCaravans(msg *tgbotapi.Message, user *data.User) string {
+	robbersCount := w.robbers.checkRobbersCount()
+	if robbersCount == robCount {
+		return "🐫🐪🐫"
+	}
+
+	w.robbers[robbersCount] = CaravanRobber{
+		user.UserID, user.Username, user.WeaponsPower,
+	}
+	robbersCount = w.robbers.checkRobbersCount()
+	if robbersCount == robCount {
+		return w.caravansStart()
+	}
+
+	return fmt.Sprintf(
+		"Для отправления каравана нужно еще ***%d*** грабителя!",
+		robCount-robbersCount,
+	)
+
+}
+
+func (w *Wars) caravansStart() string {
+	return "Начинаем набег на караван!"
+}
 
 func (w *Wars) GetTopPlayers(count int) string {
 	user := data.User{}
-	result := "***ТОП ИГРОКОВ:***\n"
+	result := "**ТОП ИГРОКОВ:**\n"
 	topUsers, err := user.GetTopUsers(count)
 
 	log.Println(err)
@@ -28,13 +72,13 @@ func (w *Wars) GetTopPlayers(count int) string {
 		result += fmt.Sprintf(
 			"%d) %s: %d👑 %d💰\n",
 			i+1,
-			us.Username,
+			GetMarkdownUsername(us.Username),
 			us.Reputation,
 			us.Coins,
 		)
 	}
 
-	result += "\n___Региструйся и победи всех___ ***/reg***"
+	result += "\n__Региструйся и победи всех__ **/reg**"
 	return result
 }
 

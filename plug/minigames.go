@@ -77,10 +77,10 @@ func (p *Poll) HaveMember(name string) int {
 
 func (p *Poll) GetPollResults(winner string, winnerID int) string {
 	result := fmt.Sprintf(
-		"`%s`\nПравильный ответ - ___%s___.\nОтветил - @%s",
+		"`%s`\nПравильный ответ - __%s__.\nОтветил - @%s",
 		p.Message.Text,
 		p.GetSuccess(),
-		winner,
+		GetMarkdownUsername(winner),
 	)
 
 	var user data.User
@@ -98,8 +98,8 @@ func (p *Poll) GetPollResults(winner string, winnerID int) string {
 
 	if len(p.members) > 1 {
 		result += fmt.Sprintf(
-			"\nПытались: ___%s___",
-			p.getAllMembersUsernamesString(winner),
+			"\nПытались: __%s__",
+			GetMarkdownUsername(p.getAllMembersUsernamesString(winner)),
 		)
 	}
 	return result
