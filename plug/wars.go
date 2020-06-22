@@ -3,6 +3,8 @@ package plug
 import (
 	"fmt"
 	"log"
+	"math/rand"
+	"time"
 
 	data "UwdBot/database"
 
@@ -11,16 +13,28 @@ import (
 
 const (
 	usersInTopList = 10
-	robCount       = 2
+	robCount       = 3
 )
 
 type CaravanRobber struct {
-	UserID   uint64
-	Username string
-	Power    int
+	ID         uint64
+	UserID     uint64
+	Username   string
+	Power      int
+	Reputation int
+	Coins      int
 }
 
 type CaravanRobbers [robCount]CaravanRobber
+
+func (c *CaravanRobbers) checkRobberById(userID uint64) bool {
+	for _, caravan := range c {
+		if caravan.UserID == userID {
+			return true
+		}
+	}
+	return false
+}
 
 func (c *CaravanRobbers) checkRobbersCount() int {
 	count := 0
@@ -32,29 +46,102 @@ func (c *CaravanRobbers) checkRobbersCount() int {
 	return count
 }
 
+func (c *CaravanRobbers) getReputationAndCoins() (int, int) {
+	var coins, reputation int
+	for _, caravan := range c {
+		reputation += caravan.Reputation
+		coins += caravan.Coins
+	}
+	coins = int((float32(coins)*0.1)/3 + 10)
+	reputation = int((float32(reputation)*0.1)/3 + 3)
+	return coins, reputation
+}
+
 func (w *Wars) RobCaravans(msg *tgbotapi.Message, user *data.User) string {
 	robbersCount := w.robbers.checkRobbersCount()
 	if robbersCount == robCount {
 		return "🐫🐪🐫"
 	}
 
+	if w.robbers.checkRobberById(uint64(msg.From.ID)) {
+		return "Ты уже учавствуешь в набеге!"
+	}
 	w.robbers[robbersCount] = CaravanRobber{
-		user.UserID, user.Username, user.WeaponsPower,
+		user.ID, user.UserID, user.Username, user.WeaponsPower, user.Reputation, user.Coins,
 	}
 	robbersCount = w.robbers.checkRobbersCount()
 	if robbersCount == robCount {
-		return w.caravansStart()
+		if w.robberingProgress == false {
+			go w.caravansStart(msg)
+			return ""
+		}
 	}
 
 	return fmt.Sprintf(
 		"Для отправления каравана нужно еще ***%d*** грабителя!",
 		robCount-robbersCount,
 	)
-
 }
 
-func (w *Wars) caravansStart() string {
-	return "Начинаем набег на караван!"
+func (w *Wars) caravansStart(msg *tgbotapi.Message) {
+	startPhrase := "Игроки: "
+	playersPhrase := ""
+	ids := make([]int, 0)
+	for i, rob := range w.robbers {
+		playersPhrase += "@" + GetMarkdownUsername(rob.Username)
+		ids = append(ids, int(rob.UserID))
+		if i != (robCount - 1) {
+			playersPhrase += ", "
+		}
+	}
+	startPhrase += playersPhrase
+	reply := tgbotapi.NewMessage(
+		msg.Chat.ID,
+		fmt.Sprintf(
+			"Игроки: **%s** начинают набег на караван. **Посмотрим что у них выйдет**\n\n__Это может занять какое то время!__",
+			playersPhrase,
+		),
+	)
+	reply.ParseMode = "markdown"
+	reply.ReplyToMessageID = msg.MessageID
+
+	msgStart := w.c.Send(&reply)
+
+	w.robberingProgress = true
+	timeLeft := 1 + rand.Intn(10)
+	timer1 := time.NewTimer(time.Minute * time.Duration(timeLeft))
+
+	earnCoins, earnReputation := w.robbers.getReputationAndCoins()
+	user := data.User{}
+	<-timer1.C
+	if rand.Intn(2) == 0 {
+		user.AddMoneyToUsers(earnCoins, ids)
+		user.AddReputationToUsers(earnReputation, ids)
+		w.c.SendMarkdownReply(
+			msgStart,
+			fmt.Sprintf(
+				"Игрокам %s удалось одержать победу, им будет добавлено по **%d** монет и **%d** репутации",
+				playersPhrase,
+				earnCoins,
+				earnReputation,
+			),
+		)
+	} else {
+		user.DecreaseMoneyToUsers(10, ids)
+		w.c.SendMarkdownReply(
+			msgStart,
+			fmt.Sprintf(
+				"Игрокам %s не удалось победить караван, их репутация упала на ***10*** баллов",
+				playersPhrase,
+			),
+		)
+	}
+
+	for i := 0; i < robCount; i++ {
+		w.robbers[i] = CaravanRobber{}
+	}
+
+	w.robberingProgress = false
 }
 
 func (w *Wars) GetTopPlayers(count int) string {
@@ -123,7 +210,7 @@ func (w *Wars) buyItem(item int, msg *tgbotapi.Message) {
 		w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
-				"Списано ***%d***💰, куплен(а): ___%s___!\n\n Прибавлено %d к боевой мощи!",
+				"Списано ***%d***💰, куплен(а): ___%s___!\n\nПрибавлено %d к боевой мощи!",
 				weapon.Cost,
 				weapon.Name,
 				weapon.Power,

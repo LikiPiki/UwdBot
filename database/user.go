@@ -163,6 +163,58 @@ func (u *User) AddPower(power int) {
 	)
 }
 
+func (u *User) AddMoneyToUsers(money int, us []int) error {
+	_, err := db.Exec(
+		context.Background(),
+		"UPDATE users SET coins = coins + $1 WHERE userid = ANY($2)",
+		money,
+		us,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *User) AddReputationToUsers(reputation int, us []int) error {
+	_, err := db.Exec(
+		context.Background(),
+		"UPDATE users SET reputation = reputation + $1 WHERE userid = ANY($2)",
+		reputation,
+		us,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *User) DecreaseMoneyToUsers(money int, us []int) error {
+	_, err := db.Exec(
+		context.Background(),
+		"UPDATE users SET coins = coins - $1 WHERE userid = ANY($2)",
+		money,
+		us,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *User) DecreaseReputationToUsers(reputation int, us []int32) error {
+	_, err := db.Exec(
+		context.Background(),
+		"UPDATE users SET reputation = reputation - $1 WHERE userid = ANY($2)",
+		reputation,
+		us,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (u *User) DecreaseMoney(money int) {
 	// for test only change it!
 	_, _ = db.Exec(

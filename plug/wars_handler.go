@@ -37,10 +37,13 @@ func (w *Wars) HandleCommands(msg *tgbotapi.Message, command string) {}
 func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, user *data.User) {
 	switch command {
 	case "caravan":
-		go w.c.SendMarkdownReply(
-			msg,
-			w.RobCaravans(msg, user),
-		)
+		reply := w.RobCaravans(msg, user)
+		if reply != "" {
+			go w.c.SendMarkdownReply(
+				msg,
+				reply,
+			)
+		}
 	case "shop":
 		go w.c.SendMarkdownReply(
 			msg,

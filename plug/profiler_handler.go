@@ -3,7 +3,6 @@ package plug
 import (
 	data "UwdBot/database"
 	"UwdBot/sender"
-	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -40,7 +39,6 @@ func (p *Profiler) HandleRegisterCommands(msg *tgbotapi.Message, command string,
 			p.unregUser(msg),
 		)
 	case "me":
-		fmt.Println(p.showUserInfo(msg))
 		go p.c.SendMarkdownReply(
 			msg,
 			p.showUserInfo(msg),
