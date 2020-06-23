@@ -12,20 +12,23 @@ import (
 var (
 	CHAT_ID   int64
 	UserRanks = []Rank{
-		{"Король", 1000, 1000},
-		{"Депутат от народа", 0, 500},
-		{"Зажиточный", 500, 300},
-		{"Программист", 300, 300},
-		{"Только что сдал ЕГЭ", 150, 50},
-		{"Пельмень", 100, 100},
-		{"Днарь", 0, 50},
-		{"Изгой", 0, 0},
+		{"Епископ", 1500},
+		{"Владелец казино", 1300},
+		{"Дальнобойщик", 1100},
+		{"Король", 1000},
+		{"Работает в шиномонтаже", 850},
+		{"Депутат от народа", 700},
+		{"Зажиточный", 500},
+		{"Программист", 300},
+		{"Только что сдал ЕГЭ", 150},
+		{"Пельмень", 100},
+		{"Днарь", 50},
+		{"Изгой", 0},
 	}
 )
 
 type Rank struct {
 	Rank       string
-	Coins      int
 	Reputation int
 }
 
@@ -39,7 +42,7 @@ func GetMarkdownUsername(username string) string {
 
 func getRank(user data.User) string {
 	for _, rank := range UserRanks {
-		if (rank.Coins <= user.Coins) && (rank.Reputation <= user.Reputation) {
+		if rank.Reputation <= user.Reputation {
 			return rank.Rank
 		}
 	}
@@ -78,6 +81,24 @@ func (p *Profiler) showUserInfo(msg *tgbotapi.Message) string {
 		user.Activity,
 		int(repStat*100),
 		int(coinsStat*100),
+	)
+}
+
+func (p *Profiler) AddMoneyByUsername(money int, username string) string {
+	user := data.User{}
+	var err error
+	user, err = user.FindUserByUsername(username)
+	if err != nil {
+		return fmt.Sprintf(
+			"Пользоваателя %s не существует!",
+			GetMarkdownUsername(username),
+		)
+	}
+	user.AddMoney(money)
+	return fmt.Sprintf(
+		"Пользователю **@%s** начислено **%d💰**",
+		GetMarkdownUsername(username),
+		money,
 	)
 }
 

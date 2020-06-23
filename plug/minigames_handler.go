@@ -38,7 +38,7 @@ func (m *Minigames) HandleRegisterCommands(msg *tgbotapi.Message, command string
 		)
 		m.UpdatePollMessage(id, &msg)
 	case "casino":
-		go m.sendCasinoMiniGame(
+		m.sendCasinoMiniGame(
 			msg,
 			user,
 		)

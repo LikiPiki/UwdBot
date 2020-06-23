@@ -3,6 +3,8 @@ package plug
 import (
 	data "UwdBot/database"
 	"UwdBot/sender"
+	"regexp"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -50,6 +52,19 @@ func (p *Profiler) HandleCallbackQuery(update *tgbotapi.Update) {
 }
 
 func (p *Profiler) HandleAdminCommands(msg *tgbotapi.Message) {
+	re := regexp.MustCompile("^[a|A]ddmoney (\\d+) (\\w+)$")
+	match := re.FindStringSubmatch(msg.Text)
+	if len(match) == 3 {
+		itemNumber, err := strconv.Atoi(match[1])
+		if err != nil {
+			p.c.SendMarkdownReply(msg, "Команда введена не верно, пробуй ``/addmoney 100 username``")
+			return
+		}
+		p.c.SendMarkdownReply(
+			msg,
+			p.AddMoneyByUsername(itemNumber, match[2]),
+		)
+	}
 }
 
 func (p *Profiler) GetRegisteredCommands() []string {

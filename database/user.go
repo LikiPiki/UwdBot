@@ -95,6 +95,31 @@ func (u *User) FindUserByID(id int) (User, error) {
 	return *u, nil
 }
 
+func (u *User) FindUserByUsername(username string) (User, error) {
+	row := db.QueryRow(
+		context.Background(),
+		"SELECT id, username, userid, blacklist, isadmin, coins, reputation, weapons_power, activ_date, activity FROM users WHERE username = $1",
+		username,
+	)
+	err := row.Scan(
+		&u.ID,
+		&u.Username,
+		&u.UserID,
+		&u.Blacklist,
+		&u.IsAdmin,
+		&u.Coins,
+		&u.Reputation,
+		&u.WeaponsPower,
+		&u.ActiveDate,
+		&u.Activity,
+	)
+	if err != nil {
+		return User{}, err
+	}
+
+	return *u, nil
+}
+
 func (u *User) GetTopUsers(count int) (Users, error) {
 	rows, err := db.Query(
 		context.Background(),

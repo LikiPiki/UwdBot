@@ -20,7 +20,7 @@ func (w *Wars) Init(s *sender.Sender) {
 }
 
 func (w *Wars) HandleMessages(msg *tgbotapi.Message) {
-	re := regexp.MustCompile("^buy (\\d+)")
+	re := regexp.MustCompile("^[b|B]uy (\\d+)")
 	match := re.FindStringSubmatch(msg.Text)
 	if len(match) > 1 {
 		itemNumber, err := strconv.Atoi(match[1])

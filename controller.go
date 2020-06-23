@@ -54,7 +54,6 @@ func (c *Controller) Switch(updates tgbotapi.UpdatesChannel) {
 			if c.app.IsAdmin(msg.From.ID) {
 				c.handleAdminCommands(msg)
 			}
-
 			for _, plug := range c.app.Plugs {
 				plug.HandleMessages(msg)
 			}
@@ -75,6 +74,21 @@ func (c *Controller) Switch(updates tgbotapi.UpdatesChannel) {
 }
 
 func (c *Controller) handleAdminCommands(msg *tgbotapi.Message) {
+	user := data.User{}
+	var err error
+	user, err = user.FindUserByID(msg.From.ID)
+	if err != nil {
+		c.sender.SendReply(
+			msg, "Вы не зарегистрированы",
+		)
+		return
+	}
+	if !user.IsAdmin {
+		c.sender.SendReply(
+			msg, "Вы не являетесь администратором! Ухадите...",
+		)
+		return
+	}
 	for _, plug := range c.app.Plugs {
 		plug.HandleAdminCommands(msg)
 	}
