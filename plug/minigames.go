@@ -24,30 +24,48 @@ func (m *Minigames) sendCasinoMiniGame(msg *tgbotapi.Message, user *data.User) {
 		return
 	}
 	user.DecreaseMoney(10)
-	miniGame, status := generateCasino()
-	m.c.SendReply(msg, miniGame)
-	if status {
-		user.AddMoney(100)
-		m.c.SendReplyToMessage(msg, "Уважаемый, вы победили... + 50💰")
+	miniGame, moneys := generateCasino()
+	reply := tgbotapi.NewMessage(
+		msg.Chat.ID,
+		miniGame,
+	)
+	sended := m.c.Send(&reply)
+	if (m.LastCasinoMessage.From != nil) && (sended.From.ID == m.LastCasinoMessage.From.ID) {
+		m.c.DeleteMessage(m.LastCasinoMessage)
+	}
+	m.LastCasinoMessage = sended
+
+	if moneys != 0 {
+		user.AddMoney(moneys)
+		m.c.SendReplyToMessage(
+			msg,
+			fmt.Sprintf(
+				"Уважаемый, вы победили... + %d💰",
+				moneys,
+			),
+		)
 	}
 }
 
-func generateCasino() (string, bool) {
+func generateCasino() (string, int) {
 	icons := []string{
 		"🚑", "🎡", "💊", "🐵", "🍒", "🍾",
 	}
 	iconsNum := []int{0, 0, 0}
 	var win string
-	status := false
+
 	for i := 0; i < 3; i++ {
 		iconsNum[i] = rand.Intn(len(icons))
 		win = win + icons[iconsNum[i]]
 	}
 	// check winner
 	if (iconsNum[0] == iconsNum[1]) && (iconsNum[1] == iconsNum[2]) {
-		status = true
+		return win, 100
 	}
-	return win, status
+	if (iconsNum[0] == iconsNum[1]) || (iconsNum[1] == iconsNum[2]) || (iconsNum[0] == iconsNum[2]) {
+		return win, 30
+	}
+	return win, 0
 }
 
 // Polls function
@@ -145,10 +163,6 @@ func (p *Poll) Shuffle() {
 		}
 	}
 }
-
-// func (m *Minigames) IsAdmin(username string) bool {
-// 	return a.admins[username]
-// }
 
 func (m *Minigames) UpdatePollMessage(id int, msg *tgbotapi.Message) {
 	if len(m.Polls) > id {

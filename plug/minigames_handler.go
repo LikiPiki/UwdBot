@@ -12,13 +12,15 @@ import (
 )
 
 type Minigames struct {
-	c     *sender.Sender
-	Polls []Poll
+	c                 *sender.Sender
+	Polls             []Poll
+	LastCasinoMessage *tgbotapi.Message
 }
 
 func (m *Minigames) Init(s *sender.Sender) {
 	m.c = s
 	m.Polls = []Poll{}
+	m.LastCasinoMessage = &tgbotapi.Message{}
 }
 
 func (m *Minigames) HandleMessages(msg *tgbotapi.Message) {}

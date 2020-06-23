@@ -122,6 +122,14 @@ func (s Sender) EditMessageMarkup(msg *tgbotapi.Message, markup *tgbotapi.Inline
 	return message
 }
 
+func (s *Sender) DeleteMessage(msg *tgbotapi.Message) {
+	deleteMsg := tgbotapi.DeleteMessageConfig{
+		ChatID:    msg.Chat.ID,
+		MessageID: msg.MessageID,
+	}
+	s.bot.DeleteMessage(deleteMsg)
+}
+
 func (s Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode string) tgbotapi.Message {
 	edit := tgbotapi.EditMessageTextConfig{
 		BaseEdit: tgbotapi.BaseEdit{

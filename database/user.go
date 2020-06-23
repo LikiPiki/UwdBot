@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"fmt"
 	"time"
 )
 
@@ -118,7 +117,6 @@ func (u *User) GetTopUsers(count int) (Users, error) {
 			&u.Reputation,
 			&u.WeaponsPower,
 		)
-		fmt.Println(u)
 
 		if err != nil {
 			return Users{}, err
