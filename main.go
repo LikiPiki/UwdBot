@@ -73,12 +73,12 @@ func main() {
 	httpTransport.Dial = dialer.Dial
 
 	bot, err := tgbotapi.NewBotAPIWithClient(TOKEN, httpClient)
+
 	if err != nil {
 		log.Panic(err)
 	}
 
 	bot.Debug = false
-
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	var sender sender.Sender

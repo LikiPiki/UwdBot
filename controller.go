@@ -151,6 +151,10 @@ func (c *Controller) handleRegisterUserCommand(msg *tgbotapi.Message) {
 		c.sender.SendReplyToMessage(msg, "Ты не зарегистрирован, сначала /reg")
 		return
 	}
+	if user.Blacklist {
+		c.sender.SendReplyToMessage(msg, "Вы заблокированы за нечестную игру")
+		return
+	}
 
 	for _, plug := range c.app.Plugs {
 		plug.HandleRegisterCommands(msg, command, &user)

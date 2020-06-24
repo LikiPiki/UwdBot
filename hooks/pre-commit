@@ -1,0 +1,22 @@
+#!/bin/sh
+
+PASS=true
+
+/* Run tests before commiting */
+go test -v 2>&1
+if [ $? -ne 0 ]
+then
+	echo "Failed to run tests. Please check the output of"
+	echo "go test or run commit with --no-verify if you know"
+	echo "what you are doing."
+	PASS=false
+fi
+
+if ! $PASS; then
+  printf "\033[0;30m\033[41mCOMMIT FAILED\033[0m\n"
+  exit 1
+else
+  printf "\033[0;30m\033[42mCOMMIT SUCCEEDED\033[0m\n"
+fi
+
+exit 0

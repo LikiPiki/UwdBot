@@ -5,9 +5,9 @@ create table if not exists users (
 	blacklist boolean default false,
 	isAdmin boolean default false,
 	coins integer default 100,
-	reputation integer default 100
-	weapons_power integer default 0
-	activ_date DATE default CURRENT_TIMESTAMP
+	reputation integer default 100,
+	weapons_power integer default 0,
+	activ_date DATE default CURRENT_TIMESTAMP,
 	activity int default 5
 );
 
@@ -17,7 +17,7 @@ where not exists (
 	select 1 from users where username='likipiki'
 );
 
-create table weapons (
+create table if not exists weapons (
 	id serial primary key,
 	name varchar(50),
 	power int default 0,
