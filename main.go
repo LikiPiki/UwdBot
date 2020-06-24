@@ -22,13 +22,13 @@ const (
 )
 
 var (
-	TOKEN   = "861382625:AAH0kDDXzb1ZVlOVoVDB3O1wZw00U_YfVME"
+	TOKEN   string
 	CHAT_ID int64
 )
 
 func init() {
-	log.Print("No .env file found. Using PRODUCTION enviroment!")
 	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found. Using PRODUCTION enviroment!")
 	}
 }
 
