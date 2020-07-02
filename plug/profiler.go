@@ -123,5 +123,5 @@ func (p *Profiler) registerNewUser(msg *tgbotapi.Message) string {
 		return "Не удалось добавить. Попробуй позже..."
 	}
 
-	return "Вы успешно прошли регистрацию. /me"
+	return "Вы успешно прошли регистрацию /me.\nПожалуйста сначала прочитай как играть https://teletype.in/@likipiki/corovan"
 }

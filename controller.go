@@ -152,7 +152,7 @@ func (c *Controller) handleRegisterUserCommand(msg *tgbotapi.Message) {
 		return
 	}
 	if user.Blacklist {
-		c.sender.SendReplyToMessage(msg, "Вы заблокированы за нечестную игру")
+		c.sender.SendReplyToMessage(msg, "А тебе друг такое задание, нужно 5 раз кукаренкнуть в чат и я тебя пропущу!")
 		return
 	}
 
