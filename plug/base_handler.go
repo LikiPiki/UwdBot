@@ -22,6 +22,11 @@ func (b *Base) HandleMessages(msg *tgbotapi.Message) {}
 
 func (b *Base) HandleCommands(msg *tgbotapi.Message, command string) {
 	switch command {
+	case "about":
+		go b.c.SendReply(
+			msg,
+			"https://teletype.in/@likipiki/corovan",
+		)
 	case "last":
 		link, fl := b.getLastVideoLink()
 		if fl {
