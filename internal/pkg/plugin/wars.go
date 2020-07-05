@@ -1,12 +1,12 @@
-package plug
+package plugin
 
 import (
+	"context"
 	"fmt"
-	"log"
+	"github.com/LikiPiki/UwdBot/internal/pkg/database"
+	"github.com/pkg/errors"
 	"math/rand"
 	"time"
-
-	data "UwdBot/database"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -57,7 +57,7 @@ func (c *CaravanRobbers) getReputationAndCoins() (int, int) {
 	return coins, reputation
 }
 
-func (w *Wars) RobCaravans(msg *tgbotapi.Message, user *data.User) string {
+func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
 	robbersCount := w.robbers.checkRobbersCount()
 	if robbersCount == robCount {
 		return "🐫🐪🐫"
@@ -72,7 +72,7 @@ func (w *Wars) RobCaravans(msg *tgbotapi.Message, user *data.User) string {
 	robbersCount = w.robbers.checkRobbersCount()
 	if robbersCount == robCount {
 		if w.robberingProgress == false {
-			go w.caravansStart(msg)
+			go w.caravansStart(ctx, msg)
 			return ""
 		}
 	}
@@ -83,7 +83,7 @@ func (w *Wars) RobCaravans(msg *tgbotapi.Message, user *data.User) string {
 	)
 }
 
-func (w *Wars) caravansStart(msg *tgbotapi.Message) {
+func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	startPhrase := "Игроки: "
 	playersPhrase := ""
 	ids := make([]int, 0)
@@ -105,19 +105,29 @@ func (w *Wars) caravansStart(msg *tgbotapi.Message) {
 	reply.ParseMode = "markdown"
 	reply.ReplyToMessageID = msg.MessageID
 
-	msgStart := w.c.Send(&reply)
+	msgStart, err := w.c.Send(&reply)
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send message")
+	}
 
 	w.robberingProgress = true
 	timeLeft := 1 + rand.Intn(10)
 	timer1 := time.NewTimer(time.Minute * time.Duration(timeLeft))
 
 	earnCoins, earnReputation := w.robbers.getReputationAndCoins()
-	user := data.User{}
 	<-timer1.C
 	if rand.Intn(2) == 0 {
-		user.AddMoneyToUsers(earnCoins, ids)
-		user.AddReputationToUsers(earnReputation, ids)
-		w.c.SendMarkdownReply(
+		if err := w.db.UserStorage.AddMoneyToUsers(ctx, earnCoins, ids); err != nil {
+			w.errors <- errors.Wrap(err, "cannot add money to users")
+			return
+		}
+
+		if err := w.db.UserStorage.AddReputationToUsers(ctx, earnReputation, ids); err != nil {
+			w.errors <- errors.Wrap(err, "cannot add reputation to users")
+			return
+		}
+
+		err := w.c.SendMarkdownReply(
 			msgStart,
 			fmt.Sprintf(
 				"Игрокам %s удалось одержать победу, им будет добавлено по **%d** монет и **%d** репутации",
@@ -126,15 +136,25 @@ func (w *Wars) caravansStart(msg *tgbotapi.Message) {
 				earnReputation,
 			),
 		)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send reply")
+		}
 	} else {
-		user.DecreaseMoneyToUsers(10, ids)
-		w.c.SendMarkdownReply(
+		if err := w.db.UserStorage.DecreaseMoneyToUsers(ctx, 10, ids); err != nil {
+			w.errors <- errors.Wrap(err, "cannot decrease money")
+			return
+		}
+
+		err := w.c.SendMarkdownReply(
 			msgStart,
 			fmt.Sprintf(
 				"Игрокам %s не удалось победить караван, их репутация упала на ***10*** баллов",
 				playersPhrase,
 			),
 		)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send reply")
+		}
 	}
 
 	for i := 0; i < robCount; i++ {
@@ -144,18 +164,15 @@ func (w *Wars) caravansStart(msg *tgbotapi.Message) {
 	w.robberingProgress = false
 }
 
-func (w *Wars) GetTopPlayers(count int) string {
-	user := data.User{}
+func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
 	result := "**ТОП ИГРОКОВ:**\n"
-	topUsers, err := user.GetTopUsers(count)
-
-	log.Println(err)
-
+	users, err := w.db.UserStorage.GetTopUsers(ctx, count)
 	if err != nil {
-		return "Что то пошло не так..."
+		w.errors <- errors.Wrap(err, "cannot get top users")
+		return ""
 	}
 
-	for i, us := range topUsers {
+	for i, us := range users {
 		result += fmt.Sprintf(
 			"%d) %s: %d👑 %d💰\n",
 			i+1,
@@ -169,12 +186,13 @@ func (w *Wars) GetTopPlayers(count int) string {
 	return result
 }
 
-func (w *Wars) GetShop(msg *tgbotapi.Message) string {
-	weap := data.Weapon{}
-	weapons, err := weap.GetAllWeapons()
+func (w *Wars) GetShop(ctx context.Context) string {
+	weapons, err := w.db.WeaponStorage.GetAllWeapons(ctx)
 	if err != nil {
-		return "Не удалось загрузить магазин..."
+		w.errors <- errors.Wrap(err, "cannot get weapons")
+		return ""
 	}
+
 	reply := "***Уютный shop 🛒 ***\n\n***Оружие:***\n"
 	for _, w := range weapons {
 		reply += fmt.Sprintf(
@@ -185,29 +203,40 @@ func (w *Wars) GetShop(msg *tgbotapi.Message) string {
 			w.Cost,
 		)
 	}
-	reply += "\n___Интересный стафф:___\nПоявится в скором времени...\n\n___Купить товар - реплай на сообщение buy номер товара___"
+	reply += "\n___Интересный стафф 🦄:___\nПоявится в скором времени...\n\n___Купить товар - реплай на сообщение buy номер товара___"
 	return reply
 }
 
-func (w *Wars) buyItem(item int, msg *tgbotapi.Message) {
-	var err error
-	var user data.User
-	user, err = user.FindUserByID(msg.From.ID)
+func (w *Wars) buyItem(ctx context.Context, item int, msg *tgbotapi.Message) {
+	user, err := w.db.UserStorage.FindUserByID(ctx, msg.From.ID)
 	if err != nil {
-		w.c.SendReplyToMessage(msg, "Вы не зарегистрированы /reg")
+		w.errors <- errors.Wrap(err, "cannot find user")
 		return
 	}
-	var weapon data.Weapon
-	weapon, err = weapon.GetWeaponsByID(item)
+
+	if user.ID == 0 {
+		if err := w.c.SendReplyToMessage(msg, "Вы не зарегистрированы /reg"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send reply")
+		}
+		return
+	}
+
+	weapon, err := w.db.WeaponStorage.GetWeaponsByID(ctx, item)
 	if err != nil {
-		w.c.SendReplyToMessage(msg, "Некоректный номер товара!")
+		w.errors <- errors.Wrap(err, "cannot get weapon by id")
 		return
 	}
 
 	if user.Coins >= weapon.Cost {
-		user.DecreaseMoney(weapon.Cost)
-		user.AddPower(weapon.Power)
-		w.c.SendMarkdownReply(
+		if err := w.db.UserStorage.DecreaseMoney(ctx, user.ID, weapon.Cost); err != nil {
+			w.errors <- errors.Wrap(err, "cannot decrease money")
+			return
+		}
+		if err := w.db.UserStorage.AddPower(ctx, int(user.ID), weapon.Power); err != nil {
+			w.errors <- errors.Wrap(err, "cannot add power")
+			return
+		}
+		err := w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
 				"Списано ***%d***💰, куплен(а): ___%s___!\n\nПрибавлено %d к боевой мощи!",
@@ -216,8 +245,11 @@ func (w *Wars) buyItem(item int, msg *tgbotapi.Message) {
 				weapon.Power,
 			),
 		)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send reply")
+		}
 	} else {
-		w.c.SendMarkdownReply(
+		err := w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
 				"Вам не хватает ***%d***💰, чтобы купить ___%s___!",
@@ -225,5 +257,8 @@ func (w *Wars) buyItem(item int, msg *tgbotapi.Message) {
 				weapon.Name,
 			),
 		)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send reply")
+		}
 	}
 }

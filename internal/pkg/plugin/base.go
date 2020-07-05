@@ -1,8 +1,8 @@
-package plug
+package plugin
 
 import (
 	"fmt"
-	"log"
+	"github.com/pkg/errors"
 	"math/rand"
 
 	"github.com/PuerkitoBio/goquery"
@@ -14,20 +14,22 @@ const (
 	LEN              = 20
 )
 
-func (b *Base) getLastVideoLink() (string, bool) {
-	b.ParseVideos()
-	if len(b.Videos) > 0 {
-		return b.Videos[0], true
+func (b *Base) getLastVideoLink() (string, bool, error) {
+	if err := b.ParseVideos(); err != nil {
+		return "", false, errors.Wrap(err, "cannot get last video link")
 	}
-	return "", false
+	if len(b.Videos) > 0 {
+		return b.Videos[0], true, nil
+	}
+	return "", false, nil
 }
 
-func (b *Base) ParseVideos() {
-	b.Videos = make([]string, 0)
+func (b *Base) ParseVideos() error {
 	doc, err := goquery.NewDocument(UWDChannelVideos)
 	if err != nil {
-		log.Println(err)
+		return errors.Wrap(err, "cannot parse videos")
 	}
+
 	parsed := make([]string, 0)
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
 		class, _ := s.Attr("class")
@@ -38,17 +40,12 @@ func (b *Base) ParseVideos() {
 		}
 	})
 	b.Videos = parsed
+
+	return nil
 }
 
 func generatePhrase(phrases []string) string {
 	return phrases[rand.Intn(len(phrases))]
-}
-
-func generatePhraseWithUsername(username string, phrases []string) string {
-	for i, phrase := range phrases {
-		phrases[i] = fmt.Sprintf(phrase, username)
-	}
-	return generatePhrase(phrases)
 }
 
 func generateKek() string {
@@ -78,7 +75,6 @@ func generateWrong() string {
 	phrases := []string{
 		"ну близко, но не то",
 		"я бы выбрал вариант выше, чем твой",
-		"Это конечно кек. Но неверно",
 		"Это конечно кек. Но неверно",
 		"Это неверно...",
 		"УУУУУУУ нееее, не то...",

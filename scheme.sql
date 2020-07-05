@@ -25,9 +25,11 @@ create table if not exists weapons (
 );
 
 insert into weapons (name, power, cost) values('Палка', 1, 10);
+insert into weapons (name, power, cost) values('Копыто', 5, 40);
 insert into weapons (name, power, cost) values('Водный пистолет', 6, 50);
 insert into weapons (name, power, cost) values('Ленивый дробовик', 14, 100);
 insert into weapons (name, power, cost) values('БаЗЗЗука', 32, 150);
 insert into weapons (name, power, cost) values('Катапульта', 111, 450);
 insert into weapons (name, power, cost) values('Зубодробящий крутокрякс', 111, 450);
 insert into weapons (name, power, cost) values('Попапылающий огнемет', 115, 470);
+insert into weapons (name, power, cost) values('Огурец 🥒', 50, 2000);
