@@ -1,11 +1,11 @@
 default:
-	go build
+	go build ./cmd/uwdbot
 
 test:
-	go test -v
+	go test -v ../...
 
 coverage:
-	go test -coverprofile=coverage.out
+	go test ../... -coverprofile=coverage.out
 	go tool cover -html=coverage.out
 	rm -rf coverage.out
 
@@ -13,4 +13,4 @@ hooks:
 	git config core.hooksPath hooks
 
 clean:
-	rm -rf UwdBot
+	rm -rf ./cmd/uwdbot/uwdbot

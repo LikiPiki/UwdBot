@@ -1,4 +1,4 @@
-package main
+package controller
 
 import (
 	"strings"
@@ -16,7 +16,7 @@ var getJoinTestingTable = []struct {
 
 func TestGetJoin(t *testing.T) {
 	for _, el := range getJoinTestingTable {
-		result := GetJoin(el.in)
+		result := getJoin(el.in)
 		if !strings.HasPrefix(result, el.expected) {
 			t.Errorf("got %q, expected %q", result, el.expected)
 		}
