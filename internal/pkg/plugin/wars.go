@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
@@ -156,7 +158,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 		}
 	}
 
-	// 2 % chance to find treasure
+	// 7 % chance to find treasure
 	treasureChance := rand.Intn(100)
 	if treasureChance >= 92 {
 		treasureCoins := 50 + rand.Intn(101)
@@ -208,6 +210,32 @@ func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
 	return result
 }
 
+func (w *Wars) HandleBuyItem(msg *tgbotapi.Message) {
+	re := regexp.MustCompile("^[b|B]uy (\\d+) ?(\\d+)?")
+	match := re.FindStringSubmatch(msg.Text)
+
+	if len(match) == 3 {
+		count := 1
+
+		if match[2] != "" {
+			var err error
+			count, err = strconv.Atoi(match[2])
+			if err != nil {
+				w.errors <- errors.Wrap(err, "cannot convert buy match[2] to integer")
+			}
+		}
+		itemNumber, err := strconv.Atoi(match[1])
+		if err != nil {
+			if err := w.c.SendReplyToMessage(msg, "Не правильно указан номер товара"); err != nil {
+				w.errors <- errors.Wrap(err, "cannot send reply to message")
+			}
+			return
+		}
+
+		w.buyItem(context.Background(), itemNumber, count, msg)
+	}
+}
+
 func (w *Wars) GetShop(ctx context.Context) string {
 	weapons, err := w.db.WeaponStorage.GetAllWeapons(ctx)
 	if err != nil {
@@ -229,7 +257,7 @@ func (w *Wars) GetShop(ctx context.Context) string {
 	return reply
 }
 
-func (w *Wars) buyItem(ctx context.Context, item int, msg *tgbotapi.Message) {
+func (w *Wars) buyItem(ctx context.Context, item int, count int, msg *tgbotapi.Message) {
 	user, err := w.db.UserStorage.FindUserByID(ctx, msg.From.ID)
 	if err != nil {
 		w.errors <- errors.Wrap(err, "cannot find user")
@@ -249,33 +277,50 @@ func (w *Wars) buyItem(ctx context.Context, item int, msg *tgbotapi.Message) {
 		return
 	}
 
-	if user.Coins >= weapon.Cost {
-		if err := w.db.UserStorage.DecreaseMoney(ctx, user.ID, weapon.Cost); err != nil {
+	if user.Coins >= weapon.Cost*count {
+		if err := w.db.UserStorage.DecreaseMoney(ctx, user.ID, weapon.Cost*count); err != nil {
 			w.errors <- errors.Wrap(err, "cannot decrease money")
 			return
 		}
-		if err := w.db.UserStorage.AddPower(ctx, int(user.ID), weapon.Power); err != nil {
+		if err := w.db.UserStorage.AddPower(ctx, int(user.ID), weapon.Power*count); err != nil {
 			w.errors <- errors.Wrap(err, "cannot add power")
 			return
 		}
-		err := w.c.SendMarkdownReply(
-			msg,
-			fmt.Sprintf(
-				"Списано ***%d***💰, куплен(а): ___%s___!\n\nПрибавлено %d 🏹 к боевой мощи!",
-				weapon.Cost,
-				weapon.Name,
-				weapon.Power,
-			),
-		)
+		var err error
+		switch count {
+		case 1:
+			err = w.c.SendMarkdownReply(
+				msg,
+				fmt.Sprintf(
+					"Списано ***%d***💰, куплен(а): ___%s___!\n\nПрибавлено %d 🏹 к боевой мощи!",
+					weapon.Cost,
+					weapon.Name,
+					weapon.Power,
+				),
+			)
+		default:
+			err = w.c.SendMarkdownReply(
+				msg,
+				fmt.Sprintf(
+					"Списано ***%d***💰, куплен(а):  ***%d x ***___%s___!\n\nПрибавлено %d 🏹 к боевой мощи!",
+					weapon.Cost*count,
+					count,
+					weapon.Name,
+					weapon.Power*count,
+				),
+			)
+		}
+
 		if err != nil {
 			w.errors <- errors.Wrap(err, "cannot send reply")
 		}
+
 	} else {
 		err := w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
 				"Вам не хватает ***%d***💰, чтобы купить ___%s___!",
-				weapon.Cost-user.Coins,
+				weapon.Cost*count-user.Coins,
 				weapon.Name,
 			),
 		)

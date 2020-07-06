@@ -2,13 +2,10 @@ package plugin
 
 import (
 	"context"
-	"regexp"
-	"strconv"
 
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
 	"github.com/LikiPiki/UwdBot/internal/pkg/sender"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	"github.com/pkg/errors"
 )
 
 type Wars struct {
@@ -26,18 +23,7 @@ func (w *Wars) Init(s *sender.Sender, db *database.Database) {
 }
 
 func (w *Wars) HandleMessages(msg *tgbotapi.Message) {
-	re := regexp.MustCompile("^[b|B]uy (\\d+)")
-	match := re.FindStringSubmatch(msg.Text)
-	if len(match) > 1 {
-		itemNumber, err := strconv.Atoi(match[1])
-		if err != nil {
-			if err := w.c.SendReplyToMessage(msg, "Не правильно указан номер товара"); err != nil {
-				w.errors <- errors.Wrap(err, "cannot send reply to message")
-			}
-			return
-		}
-		w.buyItem(context.Background(), itemNumber, msg)
-	}
+	w.HandleBuyItem(msg)
 }
 
 func (w *Wars) HandleCommands(msg *tgbotapi.Message, command string) {
