@@ -1,1 +1,1 @@
-worker: UwdBot
+worker: ./cmd/uwdbot/uwdBot

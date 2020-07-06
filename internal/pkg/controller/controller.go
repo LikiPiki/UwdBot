@@ -3,12 +3,13 @@ package controller
 import (
 	"context"
 	"fmt"
+	"log"
+	"sort"
+
 	"github.com/LikiPiki/UwdBot/cmd/uwdbot/app"
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
 	"github.com/LikiPiki/UwdBot/internal/pkg/sender"
 	"github.com/pkg/errors"
-	"log"
-	"sort"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -150,7 +151,9 @@ func (c *Controller) handleRegisterUserCommand(ctx context.Context, msg *tgbotap
 			return command <= c.registeredCommands[i]
 		},
 	)
-	if i > len(c.registeredCommands) && c.registeredCommands[i] != command {
+	fmt.Println(c.registeredCommands)
+
+	if i >= len(c.registeredCommands) || c.registeredCommands[i] != command {
 		return nil
 	}
 
