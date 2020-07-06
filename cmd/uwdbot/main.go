@@ -89,6 +89,7 @@ func main() {
 
 	for _, plug := range plugins {
 		plug.Init(snd, db)
+		// log.Println(<-plug.Errors())
 	}
 
 	app := app2.NewApp(plugins)
