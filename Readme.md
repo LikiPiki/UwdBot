@@ -6,7 +6,7 @@
 
 Клонируем репозиторий в ``$GOPATH/src/github.com/likipiki/UwdBot``
 ```
-git clone 
+git clone https://github.com/LikiPiki/UwdBot
 ```
 Активируем гит хуки на сборку и тесты перед коммитом
 ```
@@ -17,6 +17,7 @@ git config core.hooksPath hooks
 ```
 TOKEN=Токен бота
 DATABASE_URL=postgresql://localhost/uwd
+CHAT_ID=-1001094145433
 ```
 Создаем базу данных (предвариельно нужно установить postgreSQL)
 ```
@@ -29,8 +30,8 @@ create database uwd;
 
 > __Как запустить проект?__
 ```
-go build
-./UwdBot
+make
+./uwdbot
 ```
 
 > __Что делать если что-то пошло не так или вы заметили баг?__
