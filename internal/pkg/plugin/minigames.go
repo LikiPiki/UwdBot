@@ -4,19 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/LikiPiki/UwdBot/internal/pkg/database"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/LikiPiki/UwdBot/internal/pkg/database"
+	"github.com/pkg/errors"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
 	pollApiUrl = "https://engine.lifeis.porn/api/millionaire.php"
+	LEN        = 20
 )
 
 func (m *Minigames) sendCasinoMiniGame(ctx context.Context, msg *tgbotapi.Message, user *database.User) {
@@ -24,12 +26,23 @@ func (m *Minigames) sendCasinoMiniGame(ctx context.Context, msg *tgbotapi.Messag
 		if err := m.c.SendReplyToMessage(msg, "Слишком мало денег, накопи еще и приходи потом!"); err != nil {
 			m.errors <- errors.Wrap(err, "cannot send reply")
 		}
-
 		return
 	}
 
-	if err := m.db.UserStorage.DecreaseMoney(ctx, user.ID, 10); err != nil {
+	if user.Activity <= 0 {
+		if err := m.c.SendReplyToMessage(msg, "У тебя не хватает активности!"); err != nil {
+			m.errors <- errors.Wrap(err, "cannot send reply")
+		}
+		return
+	}
+
+	if err := m.db.UserStorage.DecreaseMoney(ctx, user.UserID, 10); err != nil {
 		m.errors <- errors.Wrap(err, "cannot decrease money")
+		return
+	}
+
+	if err := m.db.UserStorage.DecreaseActivity(ctx, int(user.UserID)); err != nil {
+		m.errors <- errors.Wrap(err, "cannot activity")
 		return
 	}
 

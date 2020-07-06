@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	PerDayActivity = 5
+)
+
 type UserStorage struct {
 	*pgx.Conn
 }
@@ -27,6 +31,10 @@ type User struct {
 	WeaponsPower int
 	ActiveDate   time.Time
 	Activity     int
+}
+
+func needDateUpdate(old time.Time, new time.Time) bool {
+	return !(old.Day() == new.Day() && (old.Month() == new.Month()))
 }
 
 func (u *UserStorage) CreateNewUser(ctx context.Context, username string, userID uint64) (uint64, error) {
@@ -79,6 +87,52 @@ func (u *UserStorage) DeleteUser(ctx context.Context, id int) (int, error) {
 	return int(commandTag.RowsAffected()), nil
 }
 
+func (u *UserStorage) UpdateActivity(ctx context.Context, user *User) (int, error) {
+	if needDateUpdate(user.ActiveDate, time.Now()) {
+		commandTag, err := u.Exec(
+			ctx,
+			"UPDATE users SET activ_date = CURRENT_TIMESTAMP, activity = $2 where userid = $1",
+			user.UserID,
+			PerDayActivity,
+		)
+		if err != nil {
+			return 0, errors.Wrap(err, "cannot update user activity")
+		}
+
+		if commandTag.RowsAffected() != 1 {
+			return 0, errors.New("no row found to update")
+		}
+		user.Activity = PerDayActivity
+	}
+	return user.Activity, nil
+}
+
+func (u *UserStorage) DecreaseActivity(ctx context.Context, userID int) error {
+	user, err := u.FindUserByID(ctx, userID)
+	if err != nil {
+		return errors.Wrap(err, "cannot find user")
+	}
+
+	if user.Activity > 0 {
+		commandTag, err := u.Exec(
+			ctx,
+			"UPDATE users SET activity = $1 WHERE userID = $2",
+			user.Activity-1,
+			user.UserID,
+		)
+		if err != nil {
+			return errors.Wrap(err, "cannot set new activity")
+		}
+
+		if commandTag.RowsAffected() != 1 {
+			return errors.New("no row found to update")
+		}
+
+		return nil
+	}
+	return nil
+}
+
 func (u *UserStorage) FindUserByID(ctx context.Context, id int) (User, error) {
 	row := u.QueryRow(
 		ctx,
@@ -101,6 +155,11 @@ func (u *UserStorage) FindUserByID(ctx context.Context, id int) (User, error) {
 	)
 	if err != nil {
 		return User{}, errors.Wrap(err, "cannot find user")
+	}
+
+	user.Activity, err = u.UpdateActivity(ctx, &user)
+	if err != nil {
+		return User{}, errors.Wrap(err, "cannot update user activity")
 	}
 
 	return user, nil
@@ -128,6 +187,11 @@ func (u *UserStorage) FindUserByUsername(ctx context.Context, username string) (
 	)
 	if err != nil {
 		return User{}, errors.Wrap(err, "cannot find user by name")
+	}
+
+	user.Activity, err = u.UpdateActivity(ctx, &user)
+	if err != nil {
+		return User{}, errors.Wrap(err, "cannot update user activity")
 	}
 
 	return user, nil
@@ -170,8 +234,8 @@ func (u *UserStorage) GetUserStatistics(ctx context.Context, rep int, cn int) (r
 	row := u.QueryRow(
 		ctx,
 		`SELECT
-			(SELECT COUNT(*) FROM users WHERE reputation < $1) / (SELECT COUNT(*)::float FROM users) AS rep_stat,
-			(SELECT COUNT(*) FROM users WHERE coins < $2) / (SELECT COUNT(*)::float FROM users) AS coins_stat`,
+			CAST((SELECT COUNT(*) FROM users WHERE reputation < $1) / (SELECT COUNT(*)::float FROM users) AS int) AS rep_stat,
+			CAST((SELECT COUNT(*) FROM users WHERE coins < $2) / (SELECT COUNT(*)::float FROM users) AS int) AS coins_stat`,
 		rep,
 		cn,
 	)
@@ -260,7 +324,7 @@ func (u *UserStorage) DecreaseMoneyToUsers(ctx context.Context, money int, us []
 	return nil
 }
 
-func (u *UserStorage) DecreaseReputationToUsers(ctx context.Context, reputation int, us []int32) error {
+func (u *UserStorage) DecreaseReputationToUsers(ctx context.Context, reputation int, us []int) error {
 	_, err := u.Exec(
 		ctx,
 		"UPDATE users SET reputation = reputation - $1 WHERE userid = ANY($2)",

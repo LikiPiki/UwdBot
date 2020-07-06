@@ -3,10 +3,11 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/LikiPiki/UwdBot/internal/pkg/database"
-	"github.com/pkg/errors"
 	"math/rand"
 	"time"
+
+	"github.com/LikiPiki/UwdBot/internal/pkg/database"
+	"github.com/pkg/errors"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -113,16 +114,14 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	w.robberingProgress = true
 	timeLeft := 1 + rand.Intn(10)
 	timer1 := time.NewTimer(time.Minute * time.Duration(timeLeft))
-
-	earnCoins, earnReputation := w.robbers.getReputationAndCoins()
 	<-timer1.C
 	if rand.Intn(2) == 0 {
-		if err := w.db.UserStorage.AddMoneyToUsers(ctx, earnCoins, ids); err != nil {
+		if err := w.db.UserStorage.AddMoneyToUsers(ctx, 10, ids); err != nil {
 			w.errors <- errors.Wrap(err, "cannot add money to users")
 			return
 		}
 
-		if err := w.db.UserStorage.AddReputationToUsers(ctx, earnReputation, ids); err != nil {
+		if err := w.db.UserStorage.AddReputationToUsers(ctx, 2, ids); err != nil {
 			w.errors <- errors.Wrap(err, "cannot add reputation to users")
 			return
 		}
@@ -132,15 +131,15 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 			fmt.Sprintf(
 				"Игрокам %s удалось одержать победу, им будет добавлено по **%d** монет и **%d** репутации",
 				playersPhrase,
-				earnCoins,
-				earnReputation,
+				10,
+				2,
 			),
 		)
 		if err != nil {
 			w.errors <- errors.Wrap(err, "cannot send reply")
 		}
 	} else {
-		if err := w.db.UserStorage.DecreaseMoneyToUsers(ctx, 10, ids); err != nil {
+		if err := w.db.UserStorage.DecreaseReputationToUsers(ctx, 1, ids); err != nil {
 			w.errors <- errors.Wrap(err, "cannot decrease money")
 			return
 		}
@@ -148,7 +147,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 		err := w.c.SendMarkdownReply(
 			msgStart,
 			fmt.Sprintf(
-				"Игрокам %s не удалось победить караван, их репутация упала на ***10*** баллов",
+				"Игрокам %s не удалось победить караван, их репутация упала на ***1*** бал",
 				playersPhrase,
 			),
 		)

@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
@@ -13,13 +12,11 @@ import (
 
 type Base struct {
 	c      *sender.Sender
-	Videos []string
 	errors chan error
 }
 
 func (b *Base) Init(s *sender.Sender, db *database.Database) {
 	b.c = s
-	b.Videos = make([]string, 0)
 	b.errors = make(chan error)
 }
 
@@ -27,17 +24,11 @@ func (b *Base) HandleMessages(msg *tgbotapi.Message) {}
 
 func (b *Base) HandleCommands(msg *tgbotapi.Message, command string) {
 	switch command {
-	case "last":
-		link, fl, err := b.getLastVideoLink()
-		if err != nil {
-			b.errors <- errors.Wrap(err, "cannot handle commands")
-		}
-
-		if fl {
-			if err := b.c.SendReply(msg, fmt.Sprintf("Последнее видео: %s", link)); err != nil {
-				b.errors <- errors.Wrap(err, "cannot handle commands")
-			}
-		}
+	case "news":
+		go b.c.SendReply(
+			msg,
+			"https://teletype.in/@likipiki/news",
+		)
 	case "kek":
 		go func() {
 			if err := b.c.SendReply(msg, generateKek()); err != nil {
