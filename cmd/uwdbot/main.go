@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
+
 	app2 "github.com/LikiPiki/UwdBot/cmd/uwdbot/app"
 	"github.com/LikiPiki/UwdBot/internal/pkg/controller"
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
@@ -11,9 +15,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
 	"golang.org/x/net/proxy"
-	"log"
-	"net/http"
-	"os"
 )
 
 const (

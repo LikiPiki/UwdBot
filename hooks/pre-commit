@@ -3,7 +3,7 @@
 PASS=true
 
 /* Run tests before commiting */
-go test -v 2>&1
+go test -v ./... 2>&1
 if [ $? -ne 0 ]
 then
 	echo "Failed to run tests. Please check the output of"
