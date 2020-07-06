@@ -121,7 +121,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 			return
 		}
 
-		if err := w.db.UserStorage.AddReputationToUsers(ctx, 2, ids); err != nil {
+		if err := w.db.UserStorage.AddReputationToUsers(ctx, 3, ids); err != nil {
 			w.errors <- errors.Wrap(err, "cannot add reputation to users")
 			return
 		}
@@ -132,7 +132,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 				"Игрокам %s удалось одержать победу, им будет добавлено по **%d** монет и **%d** репутации",
 				playersPhrase,
 				10,
-				2,
+				3,
 			),
 		)
 		if err != nil {
@@ -149,6 +149,29 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 			fmt.Sprintf(
 				"Игрокам %s не удалось победить караван, их репутация упала на ***1*** бал",
 				playersPhrase,
+			),
+		)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send reply")
+		}
+	}
+
+	// 2 % chance to find treasure
+	treasureChance := rand.Intn(100)
+	if treasureChance >= 92 {
+		treasureCoins := 50 + rand.Intn(101)
+
+		if err := w.db.UserStorage.AddMoneyToUsers(ctx, treasureCoins, ids); err != nil {
+			w.errors <- errors.Wrap(err, "cannot add money to users")
+			return
+		}
+
+		err = w.c.SendMarkdownReply(
+			msgStart,
+			fmt.Sprintf(
+				"Игроки %s нашли мифическое сокровище старого фараона, им начислено по **%d**💰",
+				playersPhrase,
+				treasureCoins,
 			),
 		)
 		if err != nil {
@@ -195,7 +218,7 @@ func (w *Wars) GetShop(ctx context.Context) string {
 	reply := "***Уютный shop 🛒 ***\n\n***Оружие:***\n"
 	for _, w := range weapons {
 		reply += fmt.Sprintf(
-			"%d) ___%s___ %d🗡️, %d💰\n",
+			"%d) ___%s___ %d🏹️, %d💰\n",
 			w.ID,
 			w.Name,
 			w.Power,
@@ -238,7 +261,7 @@ func (w *Wars) buyItem(ctx context.Context, item int, msg *tgbotapi.Message) {
 		err := w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
-				"Списано ***%d***💰, куплен(а): ___%s___!\n\nПрибавлено %d к боевой мощи!",
+				"Списано ***%d***💰, куплен(а): ___%s___!\n\nПрибавлено %d 🏹 к боевой мощи!",
 				weapon.Cost,
 				weapon.Name,
 				weapon.Power,
