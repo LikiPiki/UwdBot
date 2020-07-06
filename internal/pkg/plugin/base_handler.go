@@ -2,10 +2,11 @@ package plugin
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
 	"github.com/LikiPiki/UwdBot/internal/pkg/sender"
 	"github.com/pkg/errors"
-	"regexp"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )

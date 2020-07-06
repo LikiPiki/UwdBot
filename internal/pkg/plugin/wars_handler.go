@@ -2,12 +2,13 @@ package plugin
 
 import (
 	"context"
+	"regexp"
+	"strconv"
+
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
 	"github.com/LikiPiki/UwdBot/internal/pkg/sender"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
-	"regexp"
-	"strconv"
 )
 
 type Wars struct {
@@ -39,7 +40,15 @@ func (w *Wars) HandleMessages(msg *tgbotapi.Message) {
 	}
 }
 
-func (w *Wars) HandleCommands(*tgbotapi.Message, string) {}
+func (w *Wars) HandleCommands(msg *tgbotapi.Message, command string) {
+	switch command {
+	case "about":
+		go w.c.SendReply(
+			msg,
+			"https://teletype.in/@likipiki/corovan",
+		)
+	}
+}
 
 func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, user *database.User) {
 	switch command {

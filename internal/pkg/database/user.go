@@ -2,9 +2,10 @@ package database
 
 import (
 	"context"
+	"time"
+
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type UserStorage struct {
@@ -61,18 +62,21 @@ func (u *UserStorage) CountUsersWithID(ctx context.Context, id int) (int, error)
 }
 
 func (u *UserStorage) DeleteUser(ctx context.Context, id int) (int, error) {
-	var count int
-	row := u.QueryRow(
+	commandTag, err := u.Exec(
 		ctx,
 		"DELETE FROM users WHERE userID = $1",
 		id,
 	)
 
-	if err := row.Scan(&count); err != nil {
+	if err != nil {
 		return 0, errors.Wrap(err, "cannot delete user")
 	}
 
-	return count, nil
+	if commandTag.RowsAffected() != 1 {
+		return 0, errors.New("no row found to delete")
+	}
+
+	return int(commandTag.RowsAffected()), nil
 }
 
 func (u *UserStorage) FindUserByID(ctx context.Context, id int) (User, error) {

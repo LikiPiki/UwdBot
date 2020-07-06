@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"log"
 	"regexp"
 	"strconv"
 
@@ -90,6 +91,7 @@ func (p *Profiler) HandleRegisterCommands(msg *tgbotapi.Message, command string,
 		go func() {
 			text, err := p.showUserInfo(context.Background(), msg)
 			if err != nil {
+				log.Println(err)
 				p.errors <- errors.Wrap(err, "cannot get user info")
 				return
 			}

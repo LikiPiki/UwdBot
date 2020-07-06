@@ -2,8 +2,9 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"math/rand"
+
+	"github.com/pkg/errors"
 
 	"github.com/PuerkitoBio/goquery"
 )

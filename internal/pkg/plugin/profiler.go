@@ -3,9 +3,10 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
 	"github.com/pkg/errors"
-	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
