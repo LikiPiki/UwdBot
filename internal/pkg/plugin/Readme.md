@@ -65,11 +65,13 @@ func (p *Profiler) Errors() <-chan error {
 - Создайте структуру ``Profiler`` в данном случае
 ```go
 type Profiler struct {
-	c *sender.Sender // Для отправки сообщений
+	c      *sender.Sender // Для отправки сообщений
+	errors chan error     // Канал для обработки ошибок
 }
 
 func (p *Profiler) Init(s *sender.Sender) {
 	p.c = s
+	b.errors = make(chan error)
 }
 ```
 - Добавьте плагин в список инициализации в файле main.go

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	PerDayActivity = 5
+	PerDayActivity = 7
 )
 
 type UserStorage struct {
@@ -230,18 +230,17 @@ func (u *UserStorage) GetTopUsers(ctx context.Context, count int) ([]User, error
 	return users, nil
 }
 
-func (u *UserStorage) GetUserStatistics(ctx context.Context, rep int, cn int) (reputation int, coins int, err error) {
+func (u *UserStorage) GetUserStatistics(ctx context.Context, rep int, cn int) (reputation float32, coins float32, err error) {
 	row := u.QueryRow(
 		ctx,
 		`SELECT
-			CAST((SELECT COUNT(*) FROM users WHERE reputation < $1) / (SELECT COUNT(*)::float FROM users) AS int) AS rep_stat,
-			CAST((SELECT COUNT(*) FROM users WHERE coins < $2) / (SELECT COUNT(*)::float FROM users) AS int) AS coins_stat`,
+			CAST((SELECT COUNT(*) FROM users WHERE reputation < $1) / (SELECT COUNT(*)::float FROM users) AS float) AS rep_stat,
+			CAST((SELECT COUNT(*) FROM users WHERE coins < $2) / (SELECT COUNT(*)::float FROM users) AS float) AS coins_stat`,
 		rep,
 		cn,
 	)
 
-	var repStat int
-	var coinsStat int
+	var repStat, coinsStat float32
 
 	if err := row.Scan(
 		&repStat,
