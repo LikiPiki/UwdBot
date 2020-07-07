@@ -339,15 +339,19 @@ func (u *UserStorage) DecreaseReputationToUsers(ctx context.Context, reputation 
 }
 
 func (u *UserStorage) DecreaseMoney(ctx context.Context, userID uint64, money int) error {
-	// for test only change it!
-	_, err := u.Exec(
+	commandTag, err := u.Exec(
 		ctx,
 		"UPDATE users SET coins = coins - $1 WHERE userid = $2",
 		money,
 		userID,
 	)
+
 	if err != nil {
 		return errors.Wrap(err, "cannot decrease money")
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return errors.New("no row found to update")
 	}
 
 	return nil

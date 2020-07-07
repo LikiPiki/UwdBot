@@ -89,8 +89,22 @@ func main() {
 
 	for _, plug := range plugins {
 		plug.Init(snd, db)
-		// log.Println(<-plug.Errors())
 	}
+
+	// Listen and log errors from plugins
+	errorsAgregate := make(chan error)
+	for _, plug := range plugins {
+		go func(c <-chan error) {
+			errorsAgregate <- (<-c)
+		}(plug.Errors())
+	}
+
+	go func() {
+		select {
+		case err := <-errorsAgregate:
+			log.Println(err)
+		}
+	}()
 
 	app := app2.NewApp(plugins)
 	cntrl := controller.NewController(bot, app, snd, db.UserStorage)

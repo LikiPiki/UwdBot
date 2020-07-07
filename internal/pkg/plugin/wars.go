@@ -278,14 +278,16 @@ func (w *Wars) buyItem(ctx context.Context, item int, count int, msg *tgbotapi.M
 	}
 
 	if user.Coins >= weapon.Cost*count {
-		if err := w.db.UserStorage.DecreaseMoney(ctx, user.ID, weapon.Cost*count); err != nil {
+		if err := w.db.UserStorage.DecreaseMoney(ctx, user.UserID, weapon.Cost*count); err != nil {
 			w.errors <- errors.Wrap(err, "cannot decrease money")
 			return
 		}
-		if err := w.db.UserStorage.AddPower(ctx, int(user.ID), weapon.Power*count); err != nil {
+
+		if err := w.db.UserStorage.AddPower(ctx, int(user.UserID), weapon.Power*count); err != nil {
 			w.errors <- errors.Wrap(err, "cannot add power")
 			return
 		}
+
 		var err error
 		switch count {
 		case 1:
