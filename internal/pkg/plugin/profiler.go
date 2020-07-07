@@ -3,6 +3,8 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
@@ -111,4 +113,64 @@ func (p *Profiler) registerNewUser(ctx context.Context, msg *tgbotapi.Message) s
 	}
 
 	return "Вы успешно прошли регистрацию. /me"
+}
+
+func (p *Profiler) HandleAdminRegexpCommands(msg *tgbotapi.Message) {
+	// Add money case
+	re := regexp.MustCompile("^[a|A]ddmoney (\\d+) (\\w+)$")
+	match := re.FindStringSubmatch(msg.Text)
+	if len(match) == 3 {
+		itemNumber, err := strconv.Atoi(match[1])
+		if err != nil {
+			p.c.SendMarkdownReply(msg, "Команда введена не верно, пробуй ``/addmoney 100 username``")
+			return
+		}
+
+		text, err := p.AddMoneyByUsername(context.Background(), itemNumber, match[2])
+		if err != nil {
+			p.errors <- errors.Wrap(err, "cannot add money by username")
+			return
+		}
+		if err := p.c.SendMarkdownReply(
+			msg,
+			text,
+		); err != nil {
+			p.errors <- errors.Wrap(err, "cannot send MD reply")
+		}
+		return
+	}
+
+	// Ban user
+	re = regexp.MustCompile("^[b|B]an (\\w+)")
+	match = re.FindStringSubmatch(msg.Text)
+
+	if len(match) == 2 {
+		if err := p.db.UserStorage.SwitchBanUser(context.Background(), match[1], true); err != nil {
+			p.errors <- errors.Wrap(err, "cannot ban user")
+		}
+
+		reply := fmt.Sprintf("Пользователь @%s забанен!", match[1])
+		if err := p.c.SendReply(msg, reply); err != nil {
+			p.errors <- errors.Wrap(err, "cannot send reply")
+		}
+
+		return
+	}
+
+	// Unban user
+	re = regexp.MustCompile("^[u|U]nban (\\w+)")
+	match = re.FindStringSubmatch(msg.Text)
+
+	if len(match) == 2 {
+		if err := p.db.UserStorage.SwitchBanUser(context.Background(), match[1], false); err != nil {
+			p.errors <- errors.Wrap(err, "cannot unban user")
+		}
+
+		reply := fmt.Sprintf("Пользователь @%s разабанен!", match[1])
+		if err := p.c.SendReply(msg, reply); err != nil {
+			p.errors <- errors.Wrap(err, "cannot send reply")
+		}
+
+		return
+	}
 }

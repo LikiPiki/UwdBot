@@ -37,6 +37,24 @@ func needDateUpdate(old time.Time, new time.Time) bool {
 	return !(old.Day() == new.Day() && (old.Month() == new.Month()))
 }
 
+func (u *UserStorage) SwitchBanUser(ctx context.Context, username string, banState bool) error {
+	commandTag, err := u.Exec(
+		ctx,
+		"UPDATE users SET blacklist = $1 where username = $2",
+		banState,
+		username,
+	)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot switch ban user")
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return errors.New("cannot switch ban user")
+	}
+	return nil
+}
+
 func (u *UserStorage) CreateNewUser(ctx context.Context, username string, userID uint64) (uint64, error) {
 	row := u.QueryRow(
 		ctx,
@@ -253,8 +271,7 @@ func (u *UserStorage) GetUserStatistics(ctx context.Context, rep int, cn int) (r
 }
 
 func (u *UserStorage) AddMoney(ctx context.Context, userID uint64, money int) error {
-	// for test only change it!
-	_, err := u.Exec(
+	commandTag, err := u.Exec(
 		ctx,
 		"UPDATE users SET coins = coins + $1 WHERE userid = $2",
 		money,
@@ -262,6 +279,10 @@ func (u *UserStorage) AddMoney(ctx context.Context, userID uint64, money int) er
 	)
 	if err != nil {
 		return errors.Wrap(err, "cannot add money")
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return errors.New("cannot add money to user")
 	}
 
 	return nil
@@ -287,7 +308,7 @@ func (u *UserStorage) AddReputation(ctx context.Context, userID uint64, reputati
 }
 
 func (u *UserStorage) AddPower(ctx context.Context, userID int, power int) error {
-	_, err := u.Exec(
+	commandTag, err := u.Exec(
 		ctx,
 		"UPDATE users SET weapons_power = weapons_power + $1 WHERE userid = $2",
 		power,
@@ -297,11 +318,15 @@ func (u *UserStorage) AddPower(ctx context.Context, userID int, power int) error
 		return errors.Wrap(err, "cannot add power")
 	}
 
+	if commandTag.RowsAffected() != 1 {
+		return errors.New("cannot add power to user")
+	}
+
 	return nil
 }
 
 func (u *UserStorage) AddMoneyToUsers(ctx context.Context, money int, us []int) error {
-	_, err := u.Exec(
+	commandTag, err := u.Exec(
 		ctx,
 		"UPDATE users SET coins = coins + $1 WHERE userid = ANY($2)",
 		money,
@@ -311,11 +336,15 @@ func (u *UserStorage) AddMoneyToUsers(ctx context.Context, money int, us []int) 
 		return errors.Wrap(err, "cannot add money to users")
 	}
 
+	if commandTag.RowsAffected() != int64(len(us)) {
+		return errors.New("cannot add money to users")
+	}
+
 	return nil
 }
 
 func (u *UserStorage) AddReputationToUsers(ctx context.Context, reputation int, us []int) error {
-	_, err := u.Exec(
+	commandTag, err := u.Exec(
 		ctx,
 		"UPDATE users SET reputation = reputation + $1 WHERE userid = ANY($2)",
 		reputation,
@@ -325,11 +354,15 @@ func (u *UserStorage) AddReputationToUsers(ctx context.Context, reputation int, 
 		return errors.Wrap(err, "cannot add reputation to users")
 	}
 
+	if commandTag.RowsAffected() != int64(len(us)) {
+		return errors.New("cannot add reputation to users")
+	}
+
 	return nil
 }
 
 func (u *UserStorage) DecreaseMoneyToUsers(ctx context.Context, money int, us []int) error {
-	_, err := u.Exec(
+	commandTag, err := u.Exec(
 		ctx,
 		"UPDATE users SET coins = coins - $1 WHERE userid = ANY($2)",
 		money,
@@ -339,11 +372,15 @@ func (u *UserStorage) DecreaseMoneyToUsers(ctx context.Context, money int, us []
 		return errors.Wrap(err, "cannot decrease money from users")
 	}
 
+	if commandTag.RowsAffected() != int64(len(us)) {
+		return errors.New("cannot add reputation to users")
+	}
+
 	return nil
 }
 
 func (u *UserStorage) DecreaseReputationToUsers(ctx context.Context, reputation int, us []int) error {
-	_, err := u.Exec(
+	commandTag, err := u.Exec(
 		ctx,
 		"UPDATE users SET reputation = reputation - $1 WHERE userid = ANY($2)",
 		reputation,
@@ -351,6 +388,10 @@ func (u *UserStorage) DecreaseReputationToUsers(ctx context.Context, reputation 
 	)
 	if err != nil {
 		return errors.Wrap(err, "cannot decrease rep for users")
+	}
+
+	if commandTag.RowsAffected() != int64(len(us)) {
+		return errors.New("cannot add reputation to users")
 	}
 
 	return nil

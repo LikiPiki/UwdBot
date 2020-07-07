@@ -378,7 +378,7 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 
 func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	w.arenaProgress = true
-	playersPhrase, ids := w.arenaPlayers.getPhraseAndIds()
+	_, ids := w.arenaPlayers.getPhraseAndIds()
 
 	err := w.c.SendMarkdownReply(
 		msg,
@@ -478,12 +478,16 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 			return
 		}
 
-		replyString := "Бой: " + playersPhrase + ", был равным, им начислено ***%d*** монеток!"
-		if err := w.c.SendMarkdownReply(msg, fmt.Sprintf(replyString, drawMoney)); err != nil {
+		replyString := fmt.Sprintf(
+			"Бой: @%s, @%s был равным, им начислено ***%d*** монеток!",
+			GetMarkdownUsername(w.arenaPlayers[0].Username),
+			GetMarkdownUsername(w.arenaPlayers[1].Username),
+			drawMoney,
+		)
+		if err := w.c.SendMarkdownReply(msg, replyString); err != nil {
 			w.errors <- errors.Wrap(err, "cannot send draw arena message")
 			return
 		}
-
 	}
 
 	// Clean arena players to next round

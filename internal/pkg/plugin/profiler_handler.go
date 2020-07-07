@@ -3,8 +3,6 @@ package plugin
 import (
 	"context"
 	"log"
-	"regexp"
-	"strconv"
 
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
 	"github.com/LikiPiki/UwdBot/internal/pkg/sender"
@@ -110,27 +108,7 @@ func (p *Profiler) HandleRegisterCommands(msg *tgbotapi.Message, command string,
 func (p *Profiler) HandleCallbackQuery(*tgbotapi.Update) {}
 
 func (p *Profiler) HandleAdminCommands(msg *tgbotapi.Message) {
-	re := regexp.MustCompile("^[a|A]ddmoney (\\d+) (\\w+)$")
-	match := re.FindStringSubmatch(msg.Text)
-	if len(match) == 3 {
-		itemNumber, err := strconv.Atoi(match[1])
-		if err != nil {
-			p.c.SendMarkdownReply(msg, "Команда введена не верно, пробуй ``/addmoney 100 username``")
-			return
-		}
-
-		text, err := p.AddMoneyByUsername(context.Background(), itemNumber, match[2])
-		if err != nil {
-			p.errors <- errors.Wrap(err, "cannot add money by username")
-			return
-		}
-		if err := p.c.SendMarkdownReply(
-			msg,
-			text,
-		); err != nil {
-			p.errors <- errors.Wrap(err, "cannot send MD reply")
-		}
-	}
+	p.HandleAdminRegexpCommands(msg)
 }
 
 func (p *Profiler) GetRegisteredCommands() []string {

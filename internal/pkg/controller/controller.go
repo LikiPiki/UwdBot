@@ -175,6 +175,14 @@ func (c *Controller) handleRegisterUserCommand(ctx context.Context, msg *tgbotap
 		return nil
 	}
 
+	if user.Blacklist {
+		if err := c.sender.SendReplyToMessage(msg, "Ты заблокирован!"); err != nil {
+			return errors.Wrap(err, "cannot send reply")
+		}
+
+		return nil
+	}
+
 	for _, plug := range c.app.Plugs {
 		plug.HandleRegisterCommands(msg, command, &user)
 	}
