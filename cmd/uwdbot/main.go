@@ -29,7 +29,7 @@ var (
 
 func init() {
 	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found. Using PRODUCTION enviroment!")
+		log.Println(err, "No .env file found. Using PRODUCTION enviroment!")
 	}
 }
 
@@ -78,7 +78,6 @@ func main() {
 	}
 
 	snd := sender.NewSender(bot, ChatId)
-
 	// Register plugins here
 	plugins := pl.Plugins{
 		&pl.Base{},

@@ -68,7 +68,7 @@ func (m *Minigames) sendCasinoMiniGame(ctx context.Context, msg *tgbotapi.Messag
 	m.LastCasinoMessage = sent
 
 	if moneys != 0 {
-		if err := m.db.UserStorage.AddMoney(ctx, user.ID, moneys); err != nil {
+		if err := m.db.UserStorage.AddMoney(ctx, user.UserID, moneys); err != nil {
 			m.errors <- errors.Wrap(err, "cannot add money")
 			return
 		}

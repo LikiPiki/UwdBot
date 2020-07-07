@@ -81,7 +81,7 @@ func (p *Profiler) AddMoneyByUsername(ctx context.Context, money int, username s
 		), nil
 	}
 
-	if err := p.db.UserStorage.AddMoney(ctx, user.ID, money); err != nil {
+	if err := p.db.UserStorage.AddMoney(ctx, user.UserID, money); err != nil {
 		return "", errors.Wrap(err, "cannot add money to user")
 	}
 	return fmt.Sprintf(

@@ -17,9 +17,14 @@ import (
 const (
 	usersInTopList = 10
 	robCount       = 3
+	// Arena constants
+	arenaPlayersToStart = 2
+	minArenaMoney       = 30
+	minArenaReputation  = 5
+	arenaRoundMaxTime   = 5
 )
 
-type CaravanRobber struct {
+type Player struct {
 	ID         uint64
 	UserID     uint64
 	Username   string
@@ -28,9 +33,9 @@ type CaravanRobber struct {
 	Coins      int
 }
 
-type CaravanRobbers [robCount]CaravanRobber
+type Players [robCount]Player
 
-func (c *CaravanRobbers) checkRobberById(userID uint64) bool {
+func (c *Players) checkPlayerByID(userID uint64) bool {
 	for _, caravan := range c {
 		if caravan.UserID == userID {
 			return true
@@ -39,7 +44,7 @@ func (c *CaravanRobbers) checkRobberById(userID uint64) bool {
 	return false
 }
 
-func (c *CaravanRobbers) checkRobbersCount() int {
+func (c *Players) checkPlayersCount() int {
 	count := 0
 	for _, caravan := range c {
 		if caravan.UserID != 0 {
@@ -49,7 +54,7 @@ func (c *CaravanRobbers) checkRobbersCount() int {
 	return count
 }
 
-func (c *CaravanRobbers) getReputationAndCoins() (int, int) {
+func (c *Players) getReputationAndCoins() (int, int) {
 	var coins, reputation int
 	for _, caravan := range c {
 		reputation += caravan.Reputation
@@ -60,19 +65,33 @@ func (c *CaravanRobbers) getReputationAndCoins() (int, int) {
 	return coins, reputation
 }
 
+func (c *Players) getPhraseAndIds() (string, []int) {
+	playersPhrase := ""
+	ids := make([]int, 0)
+
+	for i, rob := range c {
+		playersPhrase += "@" + GetMarkdownUsername(rob.Username)
+		ids = append(ids, int(rob.UserID))
+		if i != (robCount - 1) {
+			playersPhrase += ", "
+		}
+	}
+	return playersPhrase, ids
+}
+
 func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
-	robbersCount := w.robbers.checkRobbersCount()
+	robbersCount := w.robbers.checkPlayersCount()
 	if robbersCount == robCount {
 		return "🐫🐪🐫"
 	}
 
-	if w.robbers.checkRobberById(uint64(msg.From.ID)) {
+	if w.robbers.checkPlayerByID(uint64(msg.From.ID)) {
 		return "Ты уже учавствуешь в набеге!"
 	}
-	w.robbers[robbersCount] = CaravanRobber{
+	w.robbers[robbersCount] = Player{
 		user.ID, user.UserID, user.Username, user.WeaponsPower, user.Reputation, user.Coins,
 	}
-	robbersCount = w.robbers.checkRobbersCount()
+	robbersCount = w.robbers.checkPlayersCount()
 	if robbersCount == robCount {
 		if w.robberingProgress == false {
 			go w.caravansStart(ctx, msg)
@@ -88,15 +107,7 @@ func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *dat
 
 func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	startPhrase := "Игроки: "
-	playersPhrase := ""
-	ids := make([]int, 0)
-	for i, rob := range w.robbers {
-		playersPhrase += "@" + GetMarkdownUsername(rob.Username)
-		ids = append(ids, int(rob.UserID))
-		if i != (robCount - 1) {
-			playersPhrase += ", "
-		}
-	}
+	playersPhrase, ids := w.robbers.getPhraseAndIds()
 	startPhrase += playersPhrase
 	reply := tgbotapi.NewMessage(
 		msg.Chat.ID,
@@ -149,7 +160,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 		err := w.c.SendMarkdownReply(
 			msgStart,
 			fmt.Sprintf(
-				"Игрокам %s не удалось победить караван, их репутация упала на ***1*** бал",
+				"Игрокам %s не удалось победить караван, их репутация упала на ***1*** балл",
 				playersPhrase,
 			),
 		)
@@ -182,7 +193,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	}
 
 	for i := 0; i < robCount; i++ {
-		w.robbers[i] = CaravanRobber{}
+		w.robbers[i] = Player{}
 	}
 
 	w.robberingProgress = false
@@ -330,4 +341,155 @@ func (w *Wars) buyItem(ctx context.Context, item int, count int, msg *tgbotapi.M
 			w.errors <- errors.Wrap(err, "cannot send reply")
 		}
 	}
+}
+
+// Arena gameplay
+func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
+	if w.arenaProgress {
+		return "🥊💪🥊"
+	}
+
+	if user.Activity <= 0 {
+		return "Не хватает очков активности!"
+	}
+
+	if w.arenaPlayers.checkPlayerByID(user.UserID) {
+		return "Ты уже записался на арену!"
+	}
+
+	if err := w.db.UserStorage.DecreaseActivity(ctx, int(user.UserID)); err != nil {
+		w.errors <- errors.Wrap(err, "cannot decrease arena activity")
+		return ""
+	}
+
+	arenaPlayersCount := w.arenaPlayers.checkPlayersCount()
+	w.arenaPlayers[arenaPlayersCount] = Player{
+		user.ID, user.UserID, user.Username, user.WeaponsPower, user.Reputation, user.Coins,
+	}
+
+	arenaPlayersCount = w.arenaPlayers.checkPlayersCount()
+	if arenaPlayersCount == arenaPlayersToStart {
+		go w.startArenaFight(ctx, msg)
+		return ""
+	}
+
+	return "Ты успешно записался на арену!"
+}
+
+func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
+	w.arenaProgress = true
+	playersPhrase, ids := w.arenaPlayers.getPhraseAndIds()
+
+	err := w.c.SendMarkdownReply(
+		msg,
+		fmt.Sprintf(
+			"Начинаем бой между @%s, @%s!",
+			GetMarkdownUsername(w.arenaPlayers[0].Username),
+			GetMarkdownUsername(w.arenaPlayers[1].Username),
+		),
+	)
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send start arena message")
+	}
+
+	for _, pl := range w.arenaPlayers {
+		// generate +-50 percents to player power
+		randPowerSupply := rand.Intn(2) + rand.Intn(51)/100
+		pl.Power *= randPowerSupply
+	}
+
+	winner, looser := Player{}, Player{}
+	if w.arenaPlayers[0].Power > w.arenaPlayers[1].Power {
+		winner = w.arenaPlayers[0]
+		looser = w.arenaPlayers[1]
+	}
+	if w.arenaPlayers[1].Power > w.arenaPlayers[0].Power {
+		winner = w.arenaPlayers[1]
+		looser = w.arenaPlayers[0]
+	}
+
+	timeLeft := 1 + rand.Intn(arenaRoundMaxTime)
+	timer1 := time.NewTimer(time.Minute * time.Duration(timeLeft))
+	<-timer1.C
+
+	if winner.ID != 0 {
+		looser10PercentCoins := int(float32(looser.Coins) * 0.1)
+		looser5PercentReputation := int(float32(looser.Reputation) * 0.05)
+		earnMoney := minArenaMoney
+		earnReputation := 5
+
+		if looser10PercentCoins > minArenaMoney {
+			earnMoney = looser10PercentCoins
+		}
+		if looser5PercentReputation > minArenaReputation {
+			earnReputation = looser5PercentReputation
+		}
+
+		// Add reputation and coins to winner
+		if err := w.db.UserStorage.AddMoney(ctx, winner.UserID, earnMoney); err != nil {
+			w.errors <- errors.Wrap(err, "cant add money to arena winner")
+			return
+		}
+		if err := w.db.UserStorage.AddReputation(ctx, winner.UserID, earnReputation); err != nil {
+			w.errors <- errors.Wrap(err, "cant add reputation to arena winner")
+			return
+		}
+
+		// Decrese money to looser
+		decreaseMoney := earnMoney
+		if looser.Coins < decreaseMoney {
+			decreaseMoney = looser.Coins
+		}
+		if err := w.db.UserStorage.DecreaseMoney(ctx, looser.UserID, decreaseMoney); err != nil {
+			w.errors <- errors.Wrap(err, "cant decrease money to arena looser")
+			return
+		}
+
+		// SendReply to winner
+		err := w.c.SendMarkdownReply(
+			msg,
+			fmt.Sprintf(
+				"@%s победил в этом бое. Ему начислено ***%d*** монет и ***%d*** репутации. Проигравшему @%s снято ***%d*** монет.",
+				GetMarkdownUsername(winner.Username),
+				earnMoney,
+				earnReputation,
+				GetMarkdownUsername(looser.Username),
+				decreaseMoney,
+			),
+		)
+
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannt send message to winner")
+			return
+		}
+
+	} else {
+		drawMoney := w.arenaPlayers[0].Coins
+		if w.arenaPlayers[1].Coins < drawMoney {
+			drawMoney = w.arenaPlayers[1].Coins
+		}
+		drawMoney = int(float32(drawMoney) * 0.1)
+		if drawMoney < minArenaMoney {
+			drawMoney = minArenaMoney
+		}
+		// If draw add 10% (low level coins player) to users
+		if err := w.db.UserStorage.AddMoneyToUsers(ctx, drawMoney, ids); err != nil {
+			w.errors <- errors.Wrap(err, "cannot add money arena to users")
+			return
+		}
+
+		replyString := "Бой: " + playersPhrase + ", был равным, им начислено ***%d*** монеток!"
+		if err := w.c.SendMarkdownReply(msg, fmt.Sprintf(replyString, drawMoney)); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send draw arena message")
+			return
+		}
+
+	}
+
+	// Clean arena players to next round
+	for i := 0; i < arenaPlayersToStart; i++ {
+		w.arenaPlayers[i] = Player{}
+	}
+
+	w.arenaProgress = false
 }

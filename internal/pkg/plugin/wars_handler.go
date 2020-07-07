@@ -6,14 +6,21 @@ import (
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
 	"github.com/LikiPiki/UwdBot/internal/pkg/sender"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/pkg/errors"
 )
 
 type Wars struct {
-	c                 *sender.Sender
-	robbers           CaravanRobbers
+	c      *sender.Sender
+	db     *database.Database
+	errors chan error
+
+	// Caravans
+	robbers           Players
 	robberingProgress bool
-	db                *database.Database
-	errors            chan error
+
+	// Arena
+	arenaPlayers  Players
+	arenaProgress bool
 }
 
 func (w *Wars) Init(s *sender.Sender, db *database.Database) {
@@ -38,6 +45,16 @@ func (w *Wars) HandleCommands(msg *tgbotapi.Message, command string) {
 
 func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, user *database.User) {
 	switch command {
+	case "arena":
+		replyString := w.RegisterToArena(context.Background(), msg, user)
+		if replyString == "" {
+			return
+		}
+
+		if err := w.c.SendMarkdownReply(msg, replyString); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send arena reply")
+		}
+
 	case "caravan":
 		reply := w.RobCaravans(context.Background(), msg, user)
 		if reply != "" {
@@ -65,6 +82,7 @@ func (w *Wars) HandleAdminCommands(*tgbotapi.Message) {}
 
 func (w *Wars) GetRegisteredCommands() []string {
 	return []string{
+		"arena",
 		"shop",
 		"top",
 		"caravan",

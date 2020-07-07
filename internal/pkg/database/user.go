@@ -268,10 +268,29 @@ func (u *UserStorage) AddMoney(ctx context.Context, userID uint64, money int) er
 	return nil
 }
 
+func (u *UserStorage) AddReputation(ctx context.Context, userID uint64, reputation int) error {
+	commandTag, err := u.Exec(
+		ctx,
+		"UPDATE users SET reputation = reputation + $1 WHERE userid = $2",
+		reputation,
+		userID,
+	)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot add money")
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return errors.New("cannot add reputation")
+	}
+
+	return nil
+}
+
 func (u *UserStorage) AddPower(ctx context.Context, userID int, power int) error {
 	_, err := u.Exec(
 		ctx,
-		"UPDATE users SET weapons_power = weapons_power + $1 WHERE id = $2",
+		"UPDATE users SET weapons_power = weapons_power + $1 WHERE userid = $2",
 		power,
 		userID,
 	)
