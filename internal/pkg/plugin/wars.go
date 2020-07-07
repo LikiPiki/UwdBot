@@ -392,10 +392,10 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 		w.errors <- errors.Wrap(err, "cannot send start arena message")
 	}
 
-	for _, pl := range w.arenaPlayers {
+	for i := range w.arenaPlayers {
 		// generate +-50 percents to player power
 		randPowerSupply := rand.Intn(2) + rand.Intn(51)/100
-		pl.Power *= randPowerSupply
+		w.arenaPlayers[i].Power *= randPowerSupply
 	}
 
 	winner, looser := Player{}, Player{}

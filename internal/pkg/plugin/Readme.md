@@ -18,32 +18,44 @@ impl 'p *Profiler' plug.Plugin
 ```
 __Выхлоп:__
 ```go
-func (p *Profiler) Init(s *sender.Sender) {
-        panic("not implemented")
+// Plugin initialization
+func (p *Profiler) Init(s *sender.Sender, db *database.Database) {
+        panic("not implemented") // TODO: Implement
 }
 
+// Handle messages (not commands, like regex queries)
 func (p *Profiler) HandleMessages(msg *tgbotapi.Message) {
-        panic("not implemented")
+        panic("not implemented") // TODO: Implement
 }
 
+// Not register, simple commands
 func (p *Profiler) HandleCommands(msg *tgbotapi.Message, command string) {
-        panic("not implemented")
+        panic("not implemented") // TODO: Implement
 }
 
-func (p *Profiler) HandleRegisterCommands(msg *tgbotapi.Message, command string, user *data.User) {
-        panic("not implemented")
+// Commands for registered users only
+func (p *Profiler) HandleRegisterCommands(msg *tgbotapi.Message, command string, user *database.User) {
+        panic("not implemented") // TODO: Implement
 }
 
+// Callbacks from keyboard
 func (p *Profiler) HandleCallbackQuery(update *tgbotapi.Update) {
-        panic("not implemented")
+        panic("not implemented") // TODO: Implement
 }
 
+// Commands for admin only
 func (p *Profiler) HandleAdminCommands(msg *tgbotapi.Message) {
-        panic("not implemented")
+        panic("not implemented") // TODO: Implement
 }
 
+// Get all plugin existing commands
 func (p *Profiler) GetRegisteredCommands() []string {
-        panic("not implemented")
+        panic("not implemented") // TODO: Implement
+}
+
+// Returns errors from plugin
+func (p *Profiler) Errors() <-chan error {
+        panic("not implemented") // TODO: Implement
 }
 ```
 
