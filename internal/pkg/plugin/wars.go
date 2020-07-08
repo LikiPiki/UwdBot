@@ -24,6 +24,7 @@ const (
 	arenaRoundMaxTime   = 5
 )
 
+// Player struct for arena and caravans players
 type Player struct {
 	ID         uint64
 	UserID     uint64
@@ -33,25 +34,16 @@ type Player struct {
 	Coins      int
 }
 
+// Players - players array
 type Players [robCount]Player
 
-func (c *Players) checkPlayerByID(userID uint64) bool {
-	for _, caravan := range c {
-		if caravan.UserID == userID {
+func checkPlayerByID(players Players, userID uint64) bool {
+	for _, player := range players {
+		if player.UserID == userID {
 			return true
 		}
 	}
 	return false
-}
-
-func (c *Players) checkPlayersCount() int {
-	count := 0
-	for _, caravan := range c {
-		if caravan.UserID != 0 {
-			count++
-		}
-	}
-	return count
 }
 
 func (c *Players) getReputationAndCoins() (int, int) {
@@ -79,19 +71,37 @@ func (c *Players) getPhraseAndIds() (string, []int) {
 	return playersPhrase, ids
 }
 
+func getPlayersIDs(players Players) []int {
+	ids := make([]int, len(players))
+	for _, pl := range players {
+		ids = append(ids, int(pl.UserID))
+	}
+	return ids
+}
+
+func checkPlayersCount(players Players) int {
+	count := 0
+	for _, player := range players {
+		if player.UserID != 0 {
+			count++
+		}
+	}
+	return count
+}
+
 func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
-	robbersCount := w.robbers.checkPlayersCount()
+	robbersCount := checkPlayersCount(w.robbers)
 	if robbersCount == robCount {
 		return "🐫🐪🐫"
 	}
 
-	if w.robbers.checkPlayerByID(uint64(msg.From.ID)) {
+	if checkPlayerByID(w.robbers, uint64(msg.From.ID)) {
 		return "Ты уже учавствуешь в набеге!"
 	}
 	w.robbers[robbersCount] = Player{
 		user.ID, user.UserID, user.Username, user.WeaponsPower, user.Reputation, user.Coins,
 	}
-	robbersCount = w.robbers.checkPlayersCount()
+	robbersCount = checkPlayersCount(w.robbers)
 	if robbersCount == robCount {
 		if w.robberingProgress == false {
 			go w.caravansStart(ctx, msg)
@@ -353,7 +363,7 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 		return "Не хватает очков активности!"
 	}
 
-	if w.arenaPlayers.checkPlayerByID(user.UserID) {
+	if checkPlayerByID(w.arenaPlayers, user.UserID) {
 		return "Ты уже записался на арену!"
 	}
 
@@ -362,12 +372,12 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 		return ""
 	}
 
-	arenaPlayersCount := w.arenaPlayers.checkPlayersCount()
+	arenaPlayersCount := checkPlayersCount(w.arenaPlayers)
 	w.arenaPlayers[arenaPlayersCount] = Player{
 		user.ID, user.UserID, user.Username, user.WeaponsPower, user.Reputation, user.Coins,
 	}
 
-	arenaPlayersCount = w.arenaPlayers.checkPlayersCount()
+	arenaPlayersCount = checkPlayersCount(w.arenaPlayers)
 	if arenaPlayersCount == arenaPlayersToStart {
 		go w.startArenaFight(ctx, msg)
 		return ""
@@ -378,11 +388,7 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 
 func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	w.arenaProgress = true
-	_, ids := w.arenaPlayers.getPhraseAndIds()
-
-	// !!! WARN THIS IS HOTFIX
-	ids = append([]int{}, ids[0], ids[1])
-	// !!! WARN THIS IS HOTFIX
+	ids := getPlayersIDs(w.arenaPlayers)
 
 	err := w.c.SendMarkdownReply(
 		msg,
