@@ -15,9 +15,9 @@ type Wars struct {
 	errors chan error
 
 	// Caravans
-	robbers           Players
-	robberingProgress bool
-
+	robbers                        Players
+	robberingProgress              bool
+	lastCaravanMessageWithCallback *tgbotapi.Message
 	// Arena
 	arenaPlayers  Players
 	arenaProgress bool
@@ -26,6 +26,7 @@ type Wars struct {
 func (w *Wars) Init(s *sender.Sender, db *database.Database) {
 	w.c = s
 	w.db = db
+	w.lastCaravanMessageWithCallback = &tgbotapi.Message{}
 	w.errors = make(chan error)
 }
 
@@ -54,9 +55,10 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 		if err := w.c.SendMarkdownReply(msg, replyString); err != nil {
 			w.errors <- errors.Wrap(err, "cannot send arena reply")
 		}
-
+	case "fastcaravan":
+		w.FastCaravan(context.Background(), msg, user)
 	case "caravan":
-		reply := w.RobCaravans(context.Background(), msg, user)
+		reply := w.RobCaravans(context.Background(), msg, user, false)
 		if reply != "" {
 			go w.c.SendMarkdownReply(
 				msg,
@@ -76,12 +78,15 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 	}
 }
 
-func (w *Wars) HandleCallbackQuery(*tgbotapi.Update) {}
+func (w *Wars) HandleCallbackQuery(update *tgbotapi.Update) {
+	w.HandleFastCaravanCallbackQuery(update)
+}
 
 func (w *Wars) HandleAdminCommands(*tgbotapi.Message) {}
 
 func (w *Wars) GetRegisteredCommands() []string {
 	return []string{
+		"fastcaravan",
 		"arena",
 		"shop",
 		"top",
