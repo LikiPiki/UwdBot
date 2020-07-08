@@ -113,7 +113,7 @@ func main() {
 			log.Println(err)
 			msg := tgbotapi.NewMessage(
 				AdminId, fmt.Sprintf(
-					"Error: ```%s```",
+					"***Error:*** ```%s```",
 					err.Error(),
 				),
 			)

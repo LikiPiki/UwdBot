@@ -380,6 +380,10 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	w.arenaProgress = true
 	_, ids := w.arenaPlayers.getPhraseAndIds()
 
+	// !!! WARN THIS IS HOTFIX
+	ids = append([]int{}, ids[0], ids[1])
+	// !!! WARN THIS IS HOTFIX
+
 	err := w.c.SendMarkdownReply(
 		msg,
 		fmt.Sprintf(
