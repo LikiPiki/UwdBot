@@ -72,7 +72,7 @@ func (c *Players) getPhraseAndIds() (string, []int) {
 }
 
 func getPlayersIDs(players Players) []int {
-	ids := make([]int, len(players))
+	ids := make([]int, 0)
 	for _, pl := range players {
 		ids = append(ids, int(pl.UserID))
 	}
@@ -89,12 +89,12 @@ func checkPlayersCount(players Players) int {
 	return count
 }
 
-func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
+func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User, markdownEn bool) string {
 	robbersCount := checkPlayersCount(w.robbers)
 	if robbersCount == robCount {
 		return "🐫🐪🐫"
-	}
 
+	}
 	if checkPlayerByID(w.robbers, uint64(msg.From.ID)) {
 		return "Ты уже учавствуешь в набеге!"
 	}
@@ -109,8 +109,12 @@ func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *dat
 		}
 	}
 
+	replyStr := "Для отправления каравана нужно еще ***%d*** грабителя!"
+	if !markdownEn {
+		replyStr = "Дя отправления каравана нужно еще %d грабителя!"
+	}
 	return fmt.Sprintf(
-		"Для отправления каравана нужно еще ***%d*** грабителя!",
+		replyStr,
 		robCount-robbersCount,
 	)
 }
@@ -128,6 +132,19 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	)
 	reply.ParseMode = "markdown"
 	reply.ReplyToMessageID = msg.MessageID
+
+	if w.lastCaravanMessageWithCallback.From != nil {
+		go func() {
+			timer1 := time.NewTimer(time.Second * time.Duration(2))
+			<-timer1.C
+
+			if err := w.c.DeleteMessage(w.lastCaravanMessageWithCallback); err != nil {
+				w.errors <- errors.Wrap(err, "cannot delete last caravan callbackMsg after 2 sec")
+			}
+			// clear last caravan message with callback button
+			w.lastCaravanMessageWithCallback = &tgbotapi.Message{}
+		}()
+	}
 
 	msgStart, err := w.c.Send(&reply)
 	if err != nil {
@@ -207,6 +224,103 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	}
 
 	w.robberingProgress = false
+}
+
+func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *database.User) {
+	if w.robberingProgress {
+		err := w.c.SendReply(
+			msg,
+			"🐫🐪🐫",
+		)
+
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send robberingProgress from fastcaravan")
+		}
+		return
+	}
+
+	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте собираться грабить караван!")
+
+	currentCaravanRobbers := checkPlayersCount(w.robbers)
+	replyMarkup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				fmt.Sprintf(
+					"Погнааале [ %d / %d ]",
+					currentCaravanRobbers,
+					robCount,
+				),
+				"join",
+			),
+		),
+	)
+	reply.ReplyMarkup = replyMarkup
+
+	lastCaravanMessage, err := w.c.Send(&reply)
+
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send fastcaravan message")
+		return
+	}
+
+	if w.lastCaravanMessageWithCallback.From != nil {
+		if err := w.c.DeleteMessage(w.lastCaravanMessageWithCallback); err != nil {
+			w.errors <- errors.Wrap(err, "cannot delete last caravan callback message")
+		}
+	}
+
+	w.lastCaravanMessageWithCallback = lastCaravanMessage
+}
+
+func (w *Wars) HandleFastCaravanCallbackQuery(update *tgbotapi.Update) {
+	if update.CallbackQuery.Data != "join" {
+		return
+	}
+
+	user, err := w.db.UserStorage.FindUserByID(context.Background(), update.CallbackQuery.From.ID)
+	if err != nil {
+		// w.errors <- errors.Wrap(err, "cannot find user in fastcaravan")
+		if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Сначала зарегистрируйся"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send inline keyboard reply from caravan callback")
+			return
+		}
+		return
+	}
+
+	// костыль
+	msg := update.CallbackQuery.Message
+	msg.From.ID = update.CallbackQuery.From.ID
+
+	reply := w.RobCaravans(
+		context.Background(),
+		msg,
+		&user,
+		false,
+	)
+
+	currentCaravanRobbers := checkPlayersCount(w.robbers)
+	updatedMarkup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				fmt.Sprintf(
+					"Погнааале [ %d / %d ]",
+					currentCaravanRobbers,
+					robCount,
+				),
+				"join",
+			),
+		),
+	)
+
+	w.c.EditMessageMarkup(
+		w.lastCaravanMessageWithCallback,
+		&updatedMarkup,
+	)
+
+	if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, reply); err != nil {
+		w.errors <- errors.Wrap(err, "cannot send inline keyboard reply from caravan callback")
+		return
+	}
 }
 
 func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
@@ -389,6 +503,7 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	w.arenaProgress = true
 	ids := getPlayersIDs(w.arenaPlayers)
+	ids = append([]int{}, ids[0], ids[1])
 
 	err := w.c.SendMarkdownReply(
 		msg,
