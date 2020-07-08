@@ -383,7 +383,7 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	err := w.c.SendMarkdownReply(
 		msg,
 		fmt.Sprintf(
-			"Начинаем бой между @%s, @%s!",
+			"Начинаем бой между ***@%s***, ***@%s***!",
 			GetMarkdownUsername(w.arenaPlayers[0].Username),
 			GetMarkdownUsername(w.arenaPlayers[1].Username),
 		),
@@ -449,7 +449,7 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 		err := w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
-				"@%s победил в этом бое. Ему начислено ***%d*** монет и ***%d*** репутации. Проигравшему @%s снято ***%d*** монет.",
+				"***@%s*** победил в этом бое. Ему начислено ***%d*** монет и ***%d*** репутации. Проигравшему ___@%s___ снято ***%d*** монет.",
 				GetMarkdownUsername(winner.Username),
 				earnMoney,
 				earnReputation,

@@ -23,8 +23,9 @@ const (
 )
 
 var (
-	Token  string
-	ChatId int64
+	Token   string
+	ChatId  int64
+	AdminId int64
 )
 
 func init() {
@@ -44,6 +45,14 @@ func main() {
 	if exists {
 		var err error
 		ChatId, err = strconv.ParseInt(uwdChatID, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+	}
+	adminChatID, exists := os.LookupEnv("ADMIN_ID")
+	if exists {
+		var err error
+		AdminId, err = strconv.ParseInt(adminChatID, 10, 64)
 		if err != nil {
 			panic(err)
 		}
@@ -102,6 +111,18 @@ func main() {
 		select {
 		case err := <-errorsAgregate:
 			log.Println(err)
+			msg := tgbotapi.NewMessage(
+				AdminId, fmt.Sprintf(
+					"Error: ```%s```",
+					err.Error(),
+				),
+			)
+			msg.ParseMode = "markdown"
+
+			_, err = snd.Send(&msg)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}()
 

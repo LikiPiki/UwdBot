@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -337,7 +338,13 @@ func (u *UserStorage) AddMoneyToUsers(ctx context.Context, money int, us []int) 
 	}
 
 	if commandTag.RowsAffected() != int64(len(us)) {
-		return errors.New("cannot add money to users")
+		return errors.New(
+			fmt.Sprintf(
+				"cannot add money to users row affected %d, expected %d",
+				commandTag.RowsAffected(),
+				len(us),
+			),
+		)
 	}
 
 	return nil
