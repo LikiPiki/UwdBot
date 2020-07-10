@@ -120,7 +120,7 @@ func (p *Profiler) registerNewUser(ctx context.Context, msg *tgbotapi.Message) s
 
 func (p *Profiler) HandleAdminRegexpCommands(msg *tgbotapi.Message) {
 	// Add money case
-	re := regexp.MustCompile(`^[a|A]ddmoney (\\d+) (\\w+)$`)
+	re := regexp.MustCompile(`^[a|A]ddmoney (\d+) (\w+)$`)
 	match := re.FindStringSubmatch(msg.Text)
 	if len(match) == 3 {
 		itemNumber, err := strconv.Atoi(match[1])
@@ -147,7 +147,7 @@ func (p *Profiler) HandleAdminRegexpCommands(msg *tgbotapi.Message) {
 	}
 
 	// Ban user
-	re = regexp.MustCompile(`^[b|B]an (\\w+)`)
+	re = regexp.MustCompile(`^[b|B]an (\w+)`)
 	match = re.FindStringSubmatch(msg.Text)
 
 	if len(match) == 2 {
@@ -164,7 +164,7 @@ func (p *Profiler) HandleAdminRegexpCommands(msg *tgbotapi.Message) {
 	}
 
 	// Unban user
-	re = regexp.MustCompile(`^[u|U]nban (\\w+)`)
+	re = regexp.MustCompile(`^[u|U]nban (\w+)`)
 	match = re.FindStringSubmatch(msg.Text)
 
 	if len(match) == 2 {

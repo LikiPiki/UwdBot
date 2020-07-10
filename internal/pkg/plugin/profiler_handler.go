@@ -25,6 +25,7 @@ func (p *Profiler) Errors() <-chan error {
 func (p *Profiler) Init(s *sender.Sender, db *database.Database) {
 	p.c = s
 	p.ranks = []Rank{
+		{"Человек-дискотека", 900},
 		{"Надмозг", 800},
 		{"Епископ", 700},
 		{"Владелец казино", 650},

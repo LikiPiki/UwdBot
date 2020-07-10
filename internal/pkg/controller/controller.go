@@ -156,13 +156,13 @@ func (c *Controller) handleRegisterUserCommand(ctx context.Context, msg *tgbotap
 		return nil
 	}
 
-	// if c.sender.UWDChatID != msg.Chat.ID {
-	// 	if err := c.sender.SendReplyToMessage(msg, "Этот функционал не работет в этом чате"); err != nil {
-	// 		return errors.Wrap(err, "cannot send reply")
-	// 	}
+	if c.sender.UWDChatID != msg.Chat.ID {
+		if err := c.sender.SendReplyToMessage(msg, "Этот функционал не работет в этом чате"); err != nil {
+			return errors.Wrap(err, "cannot send reply")
+		}
 
-	// 	return nil
-	// }
+		return nil
+	}
 
 	// check user exits
 	var err error
