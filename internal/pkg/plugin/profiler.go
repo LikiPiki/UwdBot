@@ -21,6 +21,9 @@ type Rank struct {
 func GetMarkdownUsername(username string) string {
 	return strings.ReplaceAll(username, "_", "\\_")
 }
+func GetItalicUnderlineUsername(username string) string {
+	return strings.ReplaceAll(username, "_", "_\\__")
+}
 
 func (p *Profiler) getRank(user database.User) string {
 	for _, rank := range p.ranks {
@@ -54,14 +57,14 @@ func (p *Profiler) showUserInfo(ctx context.Context, msg *tgbotapi.Message) (str
 
 	return fmt.Sprintf(
 		`
-***ЛИЧНАЯ КАРТОЧКА***
-Привет ***@%s*** - ___%s___
-Твоя репутация 👑: ***%d
-***Монеты 💰: ***%d***
-Боевая мощь 🏹: ***%d***
-На сегодня осталось ***%d*** единиц активности!
+*ЛИЧНАЯ КАРТОЧКА*
+Привет *@%s* - _%s_
+Твоя репутация 👑: *%d
+*Монеты 💰: *%d*
+Боевая мощь 🏹: *%d*
+На сегодня осталось *%d* единиц активности!
 
-Ты на ***%.1f***%% круче остальных и на ***%.1f***%% богаче!
+Ты на *%.1f*%% круче остальных и на *%.1f*%% богаче!
 `,
 		user.Username,
 		rank,
@@ -87,8 +90,8 @@ func (p *Profiler) AddMoneyByUsername(ctx context.Context, money int, username s
 		return "", errors.Wrap(err, "cannot add money to user")
 	}
 	return fmt.Sprintf(
-		"Пользователю **@%s** начислено **%d💰**",
-		GetMarkdownUsername(username),
+		"Пользователю *@%s* начислено *%d💰*",
+		username,
 		money,
 	), nil
 }

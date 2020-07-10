@@ -127,7 +127,7 @@ func (p *Poll) HaveMember(name string) int {
 
 func (m *Minigames) GetPollResults(ctx context.Context, winner string, winnerID int, poll Poll) (string, error) {
 	result := fmt.Sprintf(
-		"`%s`\nПравильный ответ - __%s__.\nОтветил - @%s",
+		"`%s`\nПравильный ответ - _%s_.\nОтветил - @%s",
 		poll.Message.Text,
 		m.GetSuccess(poll),
 		GetMarkdownUsername(winner),
@@ -151,7 +151,7 @@ func (m *Minigames) GetPollResults(ctx context.Context, winner string, winnerID 
 
 	if len(poll.members) > 1 {
 		result += fmt.Sprintf(
-			"\nПытались: __%s__",
+			"\nПытались: _%s_",
 			GetMarkdownUsername(m.getAllMembersUsernamesString(winner, poll)),
 		)
 	}
