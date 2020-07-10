@@ -103,7 +103,7 @@ func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *dat
 	}
 	robbersCount = checkPlayersCount(w.robbers)
 	if robbersCount == robCount {
-		if w.robberingProgress == false {
+		if !w.robberingProgress {
 			go w.caravansStart(ctx, msg)
 			return ""
 		}
@@ -313,10 +313,13 @@ func (w *Wars) HandleFastCaravanCallbackQuery(update *tgbotapi.Update) {
 	)
 
 	if w.lastCaravanMessageWithCallback.From != nil {
-		w.c.EditMessageMarkup(
+		_, err := w.c.EditMessageMarkup(
 			w.lastCaravanMessageWithCallback,
 			&updatedMarkup,
 		)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot edit last caravan message")
+		}
 	}
 
 	if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, reply); err != nil {
@@ -348,7 +351,7 @@ func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
 }
 
 func (w *Wars) HandleBuyItem(msg *tgbotapi.Message) {
-	re := regexp.MustCompile("^[b|B]uy (\\d+) ?(\\d+)?")
+	re := regexp.MustCompile(`^[b|B]uy (\\d+) ?(\\d+)?`)
 	match := re.FindStringSubmatch(msg.Text)
 
 	if len(match) == 3 {
