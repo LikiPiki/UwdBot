@@ -133,6 +133,9 @@ func main() {
 	u.Timeout = 60
 
 	updates, err := bot.GetUpdatesChan(u)
+	if err != nil {
+		log.Println(err)
+	}
 
 	cntrl.Switch(context.Background(), updates)
 }
