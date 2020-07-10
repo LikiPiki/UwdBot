@@ -253,8 +253,8 @@ func (u *UserStorage) GetUserStatistics(ctx context.Context, rep int, cn int) (r
 	row := u.QueryRow(
 		ctx,
 		`SELECT
-			CAST((SELECT COUNT(*) FROM users WHERE reputation < $1) / (SELECT COUNT(*)::float FROM users) AS float) AS rep_stat,
-			CAST((SELECT COUNT(*) FROM users WHERE coins < $2) / (SELECT COUNT(*)::float FROM users) AS float) AS coins_stat`,
+			CAST((SELECT COUNT(*) FROM users WHERE reputation <= $1) / (SELECT COUNT(*)::float FROM users) AS float) AS rep_stat,
+			CAST((SELECT COUNT(*) FROM users WHERE coins <= $2) / (SELECT COUNT(*)::float FROM users) AS float) AS coins_stat`,
 		rep,
 		cn,
 	)
