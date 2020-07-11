@@ -568,7 +568,7 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 		return "Ты уже записался на арену!"
 	}
 
-	if err := w.db.UserStorage.DecreaseActivity(ctx, int(user.UserID)); err != nil {
+	if err := w.db.UserStorage.DecreaseActivity(ctx, int(user.UserID), 1); err != nil {
 		w.errors <- errors.Wrap(err, "cannot decrease arena activity")
 		return ""
 	}
@@ -815,8 +815,15 @@ func (w *Wars) HandleFightCallbackQuery(update *tgbotapi.Update) {
 			}
 			return
 		}
+		if user.Activity < 3 {
+			if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Не достаточно активности"); err != nil {
+				w.errors <- errors.Wrap(err, "cannot send inlline reply, not enough activity")
+				return
+			}
+			return
+		}
 
-		if err := w.db.UserStorage.DecreaseActivity(context.Background(), int(user.UserID)); err != nil {
+		if err := w.db.UserStorage.DecreaseActivity(context.Background(), int(user.UserID), 3); err != nil {
 			w.errors <- errors.Wrap(err, "cannot decrease fight activity")
 			return
 		}

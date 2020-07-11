@@ -126,7 +126,7 @@ func (u *UserStorage) UpdateActivity(ctx context.Context, user *User) (int, erro
 	return user.Activity, nil
 }
 
-func (u *UserStorage) DecreaseActivity(ctx context.Context, userID int) error {
+func (u *UserStorage) DecreaseActivity(ctx context.Context, userID int, count int) error {
 	user, err := u.FindUserByID(ctx, userID)
 	if err != nil {
 		return errors.Wrap(err, "cannot find user")
@@ -136,7 +136,7 @@ func (u *UserStorage) DecreaseActivity(ctx context.Context, userID int) error {
 		commandTag, err := u.Exec(
 			ctx,
 			"UPDATE users SET activity = $1 WHERE userID = $2",
-			user.Activity-1,
+			user.Activity-count,
 			user.UserID,
 		)
 		if err != nil {

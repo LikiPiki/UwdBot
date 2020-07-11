@@ -41,7 +41,7 @@ func (m *Minigames) sendCasinoMiniGame(ctx context.Context, msg *tgbotapi.Messag
 		return
 	}
 
-	if err := m.db.UserStorage.DecreaseActivity(ctx, int(user.UserID)); err != nil {
+	if err := m.db.UserStorage.DecreaseActivity(ctx, int(user.UserID), 1); err != nil {
 		m.errors <- errors.Wrap(err, "cannot activity")
 		return
 	}
