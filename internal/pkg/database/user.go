@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	PerDayActivity = 7
+	PerDayActivity = 15
 )
 
 type UserStorage struct {

@@ -587,6 +587,98 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 	return "Ты успешно записался на арену!"
 }
 
+func (w *Wars) fightTwoPlayersLogic(ctx context.Context, players [2]Player) string {
+	reply := ""
+	for i := range players {
+		// generate +-50 percents to player power
+		randPowerSupply := rand.Intn(2) + rand.Intn(51)/100
+		players[i].Power *= randPowerSupply
+	}
+
+	winner, looser := Player{}, Player{}
+	if players[0].Power > players[1].Power {
+		winner = players[0]
+		looser = players[1]
+	}
+	if players[1].Power > players[0].Power {
+		winner = players[1]
+		looser = players[0]
+	}
+
+	// If has winner
+	if winner.ID != 0 {
+		looser10PercentCoins := int(float32(looser.Coins) * 0.1)
+		looser5PercentReputation := int(float32(looser.Reputation) * 0.05)
+		earnMoney := minArenaMoney
+		earnReputation := 5
+
+		if looser10PercentCoins > minArenaMoney {
+			earnMoney = looser10PercentCoins
+		}
+		if looser5PercentReputation > minArenaReputation {
+			earnReputation = looser5PercentReputation
+		}
+
+		// Add reputation and coins to winner
+		if err := w.db.UserStorage.AddMoney(ctx, winner.UserID, earnMoney); err != nil {
+			w.errors <- errors.Wrap(err, "cant add money to arena winner")
+			return ""
+		}
+		if err := w.db.UserStorage.AddReputation(ctx, winner.UserID, earnReputation); err != nil {
+			w.errors <- errors.Wrap(err, "cant add reputation to arena winner")
+			return ""
+		}
+
+		// Decrese money to looser
+		decreaseMoney := earnMoney
+		if looser.Coins < decreaseMoney {
+			decreaseMoney = looser.Coins
+		}
+		if err := w.db.UserStorage.DecreaseMoney(ctx, looser.UserID, decreaseMoney); err != nil {
+			w.errors <- errors.Wrap(err, "cant decrease money to arena looser")
+			return ""
+		}
+
+		// SendReply to winner
+		reply = fmt.Sprintf(
+			"@*%s* победил в этом бою. Ему начислено *%d* монет и *%d* репутации. Проигравшему _@%s_ снято *%d* монет.",
+			winner.Username,
+			earnMoney,
+			earnReputation,
+			GetItalicUnderlineUsername(looser.Username),
+			decreaseMoney,
+		)
+		return reply
+	}
+
+	// Draw situation
+	drawMoney := players[0].Coins
+	if players[1].Coins < drawMoney {
+		drawMoney = players[1].Coins
+	}
+
+	drawMoney = int(float32(drawMoney) * 0.1)
+	if drawMoney < minArenaMoney {
+		drawMoney = minArenaMoney
+	}
+	ids := []int{
+		int(players[0].UserID), int(players[1].UserID),
+	}
+	// If draw add 10% (low level coins player) to users
+	if err := w.db.UserStorage.AddMoneyToUsers(ctx, drawMoney, ids); err != nil {
+		w.errors <- errors.Wrap(err, "cannot add money arena to users")
+		return ""
+	}
+
+	reply = fmt.Sprintf(
+		"Бой: *@%s*, *@%s* был равным, им начислено *%d* монеток!",
+		players[0].Username,
+		players[1].Username,
+		drawMoney,
+	)
+	return reply
+}
+
 func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	w.arenaProgress = true
 	ids := getPlayersIDs(w.arenaPlayers)
@@ -604,102 +696,16 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 		w.errors <- errors.Wrap(err, "cannot send start arena message")
 	}
 
-	for i := range w.arenaPlayers {
-		// generate +-50 percents to player power
-		randPowerSupply := rand.Intn(2) + rand.Intn(51)/100
-		w.arenaPlayers[i].Power *= randPowerSupply
-	}
-
-	winner, looser := Player{}, Player{}
-	if w.arenaPlayers[0].Power > w.arenaPlayers[1].Power {
-		winner = w.arenaPlayers[0]
-		looser = w.arenaPlayers[1]
-	}
-	if w.arenaPlayers[1].Power > w.arenaPlayers[0].Power {
-		winner = w.arenaPlayers[1]
-		looser = w.arenaPlayers[0]
-	}
-
 	timeLeft := 1 + rand.Intn(arenaRoundMaxTime)
 	timer1 := time.NewTimer(time.Minute * time.Duration(timeLeft))
 	<-timer1.C
 
-	if winner.ID != 0 {
-		looser10PercentCoins := int(float32(looser.Coins) * 0.1)
-		looser5PercentReputation := int(float32(looser.Reputation) * 0.05)
-		earnMoney := minArenaMoney
-		earnReputation := 5
+	reply := w.fightTwoPlayersLogic(ctx, [2]Player{w.arenaPlayers[0], w.arenaPlayers[1]})
 
-		if looser10PercentCoins > minArenaMoney {
-			earnMoney = looser10PercentCoins
-		}
-		if looser5PercentReputation > minArenaReputation {
-			earnReputation = looser5PercentReputation
-		}
+	if reply != "" {
+		err := w.c.SendMarkdownReply(msg, reply)
 
-		// Add reputation and coins to winner
-		if err := w.db.UserStorage.AddMoney(ctx, winner.UserID, earnMoney); err != nil {
-			w.errors <- errors.Wrap(err, "cant add money to arena winner")
-			return
-		}
-		if err := w.db.UserStorage.AddReputation(ctx, winner.UserID, earnReputation); err != nil {
-			w.errors <- errors.Wrap(err, "cant add reputation to arena winner")
-			return
-		}
-
-		// Decrese money to looser
-		decreaseMoney := earnMoney
-		if looser.Coins < decreaseMoney {
-			decreaseMoney = looser.Coins
-		}
-		if err := w.db.UserStorage.DecreaseMoney(ctx, looser.UserID, decreaseMoney); err != nil {
-			w.errors <- errors.Wrap(err, "cant decrease money to arena looser")
-			return
-		}
-
-		// SendReply to winner
-		err = w.c.SendMarkdownReply(
-			msg,
-			fmt.Sprintf(
-				"@*%s* победил в этом бою. Ему начислено *%d* монет и *%d* репутации. Проигравшему _@%s_ снято *%d* монет.",
-				winner.Username,
-				earnMoney,
-				earnReputation,
-				GetItalicUnderlineUsername(looser.Username),
-				decreaseMoney,
-			),
-		)
-
-		if err != nil {
-			w.errors <- errors.Wrap(err, "cannt send message to winner")
-			return
-		}
-
-	} else {
-		drawMoney := w.arenaPlayers[0].Coins
-		if w.arenaPlayers[1].Coins < drawMoney {
-			drawMoney = w.arenaPlayers[1].Coins
-		}
-		drawMoney = int(float32(drawMoney) * 0.1)
-		if drawMoney < minArenaMoney {
-			drawMoney = minArenaMoney
-		}
-		// If draw add 10% (low level coins player) to users
-		if err := w.db.UserStorage.AddMoneyToUsers(ctx, drawMoney, ids); err != nil {
-			w.errors <- errors.Wrap(err, "cannot add money arena to users")
-			return
-		}
-
-		replyString := fmt.Sprintf(
-			"Бой: *@%s*, *@%s* был равным, им начислено *%d* монеток!",
-			w.arenaPlayers[0].Username,
-			w.arenaPlayers[1].Username,
-			drawMoney,
-		)
-		if err := w.c.SendMarkdownReply(msg, replyString); err != nil {
-			w.errors <- errors.Wrap(err, "cannot send draw arena message")
-			return
-		}
+		w.errors <- errors.Wrap(err, "cannot send arena fight result")
 	}
 
 	// Clean arena players to next round
@@ -718,7 +724,7 @@ func (w *Wars) SendFightOpponents(ctx context.Context, msg *tgbotapi.Message, us
 		}
 		return
 	}
-	minPower, maxPower := int(0.7*float32(user.WeaponsPower)), int(1.3*float32(user.WeaponsPower))
+	minPower, maxPower := int(0.6*float32(user.WeaponsPower)), int(1.5*float32(user.WeaponsPower))
 
 	users, err := w.db.UserStorage.FindUsersPowerBetween(ctx, user.UserID, minPower, maxPower, usersPerFightMessage)
 	if err != nil {
@@ -772,11 +778,22 @@ func (w *Wars) HandleFightCallbackQuery(update *tgbotapi.Update) {
 		}
 		return
 	}
+
 	callbackQuery := update.CallbackQuery
 	re := regexp.MustCompile(`f(\d+) (\d+)`)
 	match := re.FindStringSubmatch(callbackQuery.Data)
 
 	if len(match) == 3 {
+		oppUserID, err := strconv.Atoi(match[1])
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot atoi fight callback regexp match[1]")
+			if err := w.c.SendInlineKeyboardReply(callbackQuery, "Противник не найден..."); err != nil {
+				w.errors <- errors.Wrap(err, "cannot send not this user message, opponent not found in regexp")
+				return
+			}
+			return
+		}
+
 		startMsgID, err := strconv.Atoi(match[2])
 		if err != nil {
 			w.errors <- errors.Wrap(err, "cannot atoi fight callback regexp match[2]")
@@ -790,9 +807,37 @@ func (w *Wars) HandleFightCallbackQuery(update *tgbotapi.Update) {
 			}
 		}
 
-		if err := w.c.SendInlineKeyboardReply(callbackQuery, "Функционал находится в разработке"); err != nil {
-			w.errors <- errors.Wrap(err, "cannot send reply markup")
+		opp, err := w.db.UserStorage.FindUserByID(context.Background(), oppUserID)
+		if err != nil {
+			if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Сначала зарегистрируйся"); err != nil {
+				w.errors <- errors.Wrap(err, "cannot send inline keyboard reply from caravan callback")
+				return
+			}
 			return
+		}
+
+		if err := w.db.UserStorage.DecreaseActivity(context.Background(), int(user.UserID)); err != nil {
+			w.errors <- errors.Wrap(err, "cannot decrease fight activity")
+			return
+		}
+
+		players := [2]Player{
+			Player{
+				user.ID, user.UserID, user.Username, user.WeaponsPower, user.Reputation, user.Coins,
+			},
+			Player{
+				opp.ID, opp.UserID, opp.Username, opp.WeaponsPower, opp.Reputation, opp.Coins,
+			},
+		}
+
+		reply := w.fightTwoPlayersLogic(context.Background(), players)
+		if reply != "" {
+			_, err := w.c.EditMessageText(callbackQuery.Message, reply, "markdown")
+			if err != nil {
+				w.errors <- errors.Wrap(err, "cannot edit fight message")
+				return
+			}
+
 		}
 	}
 }
