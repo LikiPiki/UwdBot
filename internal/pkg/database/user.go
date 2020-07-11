@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	PerDayActivity = 7
+	PerDayActivity = 15
 )
 
 type UserStorage struct {
@@ -126,7 +126,7 @@ func (u *UserStorage) UpdateActivity(ctx context.Context, user *User) (int, erro
 	return user.Activity, nil
 }
 
-func (u *UserStorage) DecreaseActivity(ctx context.Context, userID int) error {
+func (u *UserStorage) DecreaseActivity(ctx context.Context, userID int, count int) error {
 	user, err := u.FindUserByID(ctx, userID)
 	if err != nil {
 		return errors.Wrap(err, "cannot find user")
@@ -136,7 +136,7 @@ func (u *UserStorage) DecreaseActivity(ctx context.Context, userID int) error {
 		commandTag, err := u.Exec(
 			ctx,
 			"UPDATE users SET activity = $1 WHERE userID = $2",
-			user.Activity-1,
+			user.Activity-count,
 			user.UserID,
 		)
 		if err != nil {
@@ -253,8 +253,8 @@ func (u *UserStorage) GetUserStatistics(ctx context.Context, rep int, cn int) (r
 	row := u.QueryRow(
 		ctx,
 		`SELECT
-			CAST((SELECT COUNT(*) FROM users WHERE reputation < $1) / (SELECT COUNT(*)::float FROM users) AS float) AS rep_stat,
-			CAST((SELECT COUNT(*) FROM users WHERE coins < $2) / (SELECT COUNT(*)::float FROM users) AS float) AS coins_stat`,
+			CAST((SELECT COUNT(*) FROM users WHERE reputation <= $1) / (SELECT COUNT(*)::float FROM users) AS float) AS rep_stat,
+			CAST((SELECT COUNT(*) FROM users WHERE coins <= $2) / (SELECT COUNT(*)::float FROM users) AS float) AS coins_stat`,
 		rep,
 		cn,
 	)
@@ -402,6 +402,38 @@ func (u *UserStorage) DecreaseReputationToUsers(ctx context.Context, reputation 
 	}
 
 	return nil
+}
+
+func (u *UserStorage) FindUsersPowerBetween(ctx context.Context, userID uint64, min int, max int, limit int) ([]User, error) {
+	rows, err := u.Query(
+		ctx,
+		"SELECT userid, username, weapons_power FROM users WHERE (weapons_power BETWEEN $1 AND $2) AND userid != $3 LIMIT $4",
+		min,
+		max,
+		userID,
+		limit,
+	)
+	if err != nil {
+		return []User{}, errors.Wrap(err, "cannot select users between")
+	}
+
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(
+			&user.UserID,
+			&user.Username,
+			&user.WeaponsPower,
+		)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot scan between users row")
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 func (u *UserStorage) DecreaseMoney(ctx context.Context, userID uint64, money int) error {

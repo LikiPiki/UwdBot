@@ -25,10 +25,9 @@ func (b *Base) HandleMessages(msg *tgbotapi.Message) {}
 func (b *Base) HandleCommands(msg *tgbotapi.Message, command string) {
 	switch command {
 	case "news":
-		go b.c.SendReply(
-			msg,
-			"https://teletype.in/@likipiki/news",
-		)
+		if err := b.c.SendReply(msg, "https://teletype.in/@likipiki/news"); err != nil {
+			b.errors <- errors.Wrap(err, "cannot send news message")
+		}
 	case "kek":
 		go func() {
 			if err := b.c.SendReply(msg, generateKek()); err != nil {

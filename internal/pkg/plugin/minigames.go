@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	pollApiUrl = "https://engine.lifeis.porn/api/millionaire.php"
+	pollAPIURL = "https://engine.lifeis.porn/api/millionaire.php"
 	LEN        = 20
 )
 
@@ -41,7 +41,7 @@ func (m *Minigames) sendCasinoMiniGame(ctx context.Context, msg *tgbotapi.Messag
 		return
 	}
 
-	if err := m.db.UserStorage.DecreaseActivity(ctx, int(user.UserID)); err != nil {
+	if err := m.db.UserStorage.DecreaseActivity(ctx, int(user.UserID), 1); err != nil {
 		m.errors <- errors.Wrap(err, "cannot activity")
 		return
 	}
@@ -100,7 +100,6 @@ func generateCasino() (string, int) {
 	return win, 0
 }
 
-// Polls function
 type QuestionsData struct {
 	Question string   `json:"question"`
 	Valid    int      `json:"valid"`
@@ -127,7 +126,7 @@ func (p *Poll) HaveMember(name string) int {
 
 func (m *Minigames) GetPollResults(ctx context.Context, winner string, winnerID int, poll Poll) (string, error) {
 	result := fmt.Sprintf(
-		"`%s`\nПравильный ответ - __%s__.\nОтветил - @%s",
+		"`%s`\nПравильный ответ - _%s_.\nОтветил - @%s",
 		poll.Message.Text,
 		m.GetSuccess(poll),
 		GetMarkdownUsername(winner),
@@ -151,7 +150,7 @@ func (m *Minigames) GetPollResults(ctx context.Context, winner string, winnerID 
 
 	if len(poll.members) > 1 {
 		result += fmt.Sprintf(
-			"\nПытались: __%s__",
+			"\nПытались: _%s_",
 			GetMarkdownUsername(m.getAllMembersUsernamesString(winner, poll)),
 		)
 	}
@@ -213,7 +212,7 @@ func (m *Minigames) UpdatePollMessage(id int, msg *tgbotapi.Message) error {
 }
 
 func (m *Minigames) LoadPoll() (Poll, error) {
-	req, err := http.NewRequest("GET", pollApiUrl, nil)
+	req, err := http.NewRequest("GET", pollAPIURL, nil)
 	if err != nil {
 		return Poll{}, errors.Wrap(err, "cannot perform HTTP GET request")
 	}
@@ -259,12 +258,12 @@ func (m *Minigames) GetPoll() (int, error) {
 	if len(m.Polls) < LEN {
 		m.Polls = append(m.Polls, poll)
 		return len(m.Polls) - 1, nil
-	} else {
-		for id, current := range m.Polls {
-			if current.Data.Solved == true {
-				m.Polls[id] = poll
-				return id, nil
-			}
+	}
+
+	for id, current := range m.Polls {
+		if current.Data.Solved {
+			m.Polls[id] = poll
+			return id, nil
 		}
 	}
 
