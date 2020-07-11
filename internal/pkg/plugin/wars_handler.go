@@ -65,6 +65,8 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 				reply,
 			)
 		}
+	case "fight":
+		go w.SendFightOpponents(context.Background(), msg, user)
 	case "newshop":
 		go w.SendNewShop(context.Background(), msg)
 	case "shop":
@@ -83,6 +85,7 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 func (w *Wars) HandleCallbackQuery(update *tgbotapi.Update) {
 	w.HandleFastCaravanCallbackQuery(update)
 	w.HandleNewShopCallbackQuery(update)
+	w.HandleFightCallbackQuery(update)
 }
 
 func (w *Wars) HandleAdminCommands(*tgbotapi.Message) {}
@@ -95,6 +98,7 @@ func (w *Wars) GetRegisteredCommands() []string {
 		"newshop",
 		"top",
 		"caravan",
+		"fight",
 	}
 }
 

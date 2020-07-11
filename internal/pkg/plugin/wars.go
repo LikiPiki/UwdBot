@@ -22,6 +22,8 @@ const (
 	minArenaMoney       = 30
 	minArenaReputation  = 5
 	arenaRoundMaxTime   = 5
+	// Fight commands
+	usersPerFightMessage = 3
 )
 
 // Player struct for arena and caravans players
@@ -659,7 +661,7 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 		err = w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
-				"@*%s* победил в этом бое. Ему начислено *%d* монет и *%d* репутации. Проигравшему _@%s_ снято *%d* монет.",
+				"@*%s* победил в этом бою. Ему начислено *%d* монет и *%d* репутации. Проигравшему _@%s_ снято *%d* монет.",
 				winner.Username,
 				earnMoney,
 				earnReputation,
@@ -706,4 +708,91 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	}
 
 	w.arenaProgress = false
+}
+
+func (w *Wars) SendFightOpponents(ctx context.Context, msg *tgbotapi.Message, user *database.User) {
+	if user.Activity < 2 {
+		if err := w.c.SendReply(msg, "Недостаточно активности!"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send not enough activity in send fight")
+			return
+		}
+		return
+	}
+	minPower, maxPower := int(0.7*float32(user.WeaponsPower)), int(1.3*float32(user.WeaponsPower))
+
+	users, err := w.db.UserStorage.FindUsersPowerBetween(ctx, user.UserID, minPower, maxPower, usersPerFightMessage)
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot find users between power 30%")
+		return
+	}
+
+	if len(users) == 0 {
+		if err := w.c.SendReply(msg, "Не нашел никого с похожей мощью!"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send no found in send fight")
+			return
+		}
+		return
+	}
+
+	// Shuffle users array
+	rand.Shuffle(len(users), func(i, j int) {
+		users[i], users[j] = users[j], users[i]
+	})
+
+	keyboard := tgbotapi.InlineKeyboardMarkup{}
+	for index, player := range users {
+		var row []tgbotapi.InlineKeyboardButton
+		buttonText := fmt.Sprintf("@%s - %d 🎯", player.Username, player.WeaponsPower)
+		buttonClass := fmt.Sprintf("f%d %d", player.UserID, user.ID)
+		btn := tgbotapi.NewInlineKeyboardButtonData(buttonText, buttonClass)
+		row = append(row, btn)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+
+		// Generate maximum usersPerFightMessage users
+		if index >= usersPerFightMessage-1 {
+			break
+		}
+	}
+
+	reply := tgbotapi.NewMessage(msg.Chat.ID, "Найдены следующие противники!")
+	reply.ReplyMarkup = keyboard
+	_, err = w.c.Send(&reply)
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send fight msg with reply markup")
+		return
+	}
+}
+
+func (w *Wars) HandleFightCallbackQuery(update *tgbotapi.Update) {
+	user, err := w.db.UserStorage.FindUserByID(context.Background(), update.CallbackQuery.From.ID)
+	if err != nil {
+		if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Сначала зарегистрируйся"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send inline keyboard reply from caravan callback")
+			return
+		}
+		return
+	}
+	callbackQuery := update.CallbackQuery
+	re := regexp.MustCompile(`f(\d+) (\d+)`)
+	match := re.FindStringSubmatch(callbackQuery.Data)
+
+	if len(match) == 3 {
+		startMsgID, err := strconv.Atoi(match[2])
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot atoi fight callback regexp match[2]")
+			return
+		}
+
+		if uint64(startMsgID) != user.ID {
+			if err := w.c.SendInlineKeyboardReply(callbackQuery, "Это не ваши противники! /fight"); err != nil {
+				w.errors <- errors.Wrap(err, "cannot send not this user message in fight callback")
+				return
+			}
+		}
+
+		if err := w.c.SendInlineKeyboardReply(callbackQuery, "Функционал находится в разработке"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send reply markup")
+			return
+		}
+	}
 }

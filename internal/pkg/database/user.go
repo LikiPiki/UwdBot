@@ -404,6 +404,38 @@ func (u *UserStorage) DecreaseReputationToUsers(ctx context.Context, reputation 
 	return nil
 }
 
+func (u *UserStorage) FindUsersPowerBetween(ctx context.Context, userID uint64, min int, max int, limit int) ([]User, error) {
+	rows, err := u.Query(
+		ctx,
+		"SELECT userid, username, weapons_power FROM users WHERE (weapons_power BETWEEN $1 AND $2) AND userid != $3 LIMIT $4",
+		min,
+		max,
+		userID,
+		limit,
+	)
+	if err != nil {
+		return []User{}, errors.Wrap(err, "cannot select users between")
+	}
+
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(
+			&user.UserID,
+			&user.Username,
+			&user.WeaponsPower,
+		)
+
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot scan between users row")
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
 func (u *UserStorage) DecreaseMoney(ctx context.Context, userID uint64, money int) error {
 	commandTag, err := u.Exec(
 		ctx,
