@@ -659,11 +659,11 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 		err = w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
-				"@*%s* победил в этом бое. Ему начислено *%d* монет и *%d* репутации. Проигравшему _@%s_ снято *%d* монет.",
+				"@*%s* победил в этом бое. Ему начислено *%d* монет и *%d* репутации. Проигравшему @%s снято *%d* монет.",
 				winner.Username,
 				earnMoney,
 				earnReputation,
-				GetItalicUnderlineUsername(looser.Username),
+				GetMarkdownUsername(looser.Username),
 				decreaseMoney,
 			),
 		)
