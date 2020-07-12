@@ -72,7 +72,7 @@ func (c *Players) getPhraseAndIds() (string, []int) {
 }
 
 func getPlayersIDs(players Players) []int {
-	ids := make([]int, len(players))
+	ids := make([]int, 0)
 	for _, pl := range players {
 		ids = append(ids, int(pl.UserID))
 	}
@@ -89,12 +89,12 @@ func checkPlayersCount(players Players) int {
 	return count
 }
 
-func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
+func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User, markdownEn bool) string {
 	robbersCount := checkPlayersCount(w.robbers)
 	if robbersCount == robCount {
 		return "🐫🐪🐫"
-	}
 
+	}
 	if checkPlayerByID(w.robbers, uint64(msg.From.ID)) {
 		return "Ты уже учавствуешь в набеге!"
 	}
@@ -103,14 +103,18 @@ func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *dat
 	}
 	robbersCount = checkPlayersCount(w.robbers)
 	if robbersCount == robCount {
-		if w.robberingProgress == false {
+		if !w.robberingProgress {
 			go w.caravansStart(ctx, msg)
 			return ""
 		}
 	}
 
+	replyStr := "Для отправления каравана нужно еще *%d* грабителя!"
+	if !markdownEn {
+		replyStr = "Для отправления каравана нужно еще %d грабителя!"
+	}
 	return fmt.Sprintf(
-		"Для отправления каравана нужно еще ***%d*** грабителя!",
+		replyStr,
 		robCount-robbersCount,
 	)
 }
@@ -122,12 +126,25 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	reply := tgbotapi.NewMessage(
 		msg.Chat.ID,
 		fmt.Sprintf(
-			"Игроки: **%s** начинают набег на караван. **Посмотрим что у них выйдет**\n\n__Это может занять какое то время!__",
+			"Игроки: %s начинают набег на караван. Посмотрим что у них выйдет\n\n_Это может занять какое то время!_",
 			playersPhrase,
 		),
 	)
 	reply.ParseMode = "markdown"
 	reply.ReplyToMessageID = msg.MessageID
+
+	if w.lastCaravanMessageWithCallback.From != nil {
+		go func() {
+			timer1 := time.NewTimer(time.Second * time.Duration(2))
+			<-timer1.C
+
+			if err := w.c.DeleteMessage(w.lastCaravanMessageWithCallback); err != nil {
+				w.errors <- errors.Wrap(err, "cannot delete last caravan callbackMsg after 2 sec")
+			}
+			// clear last caravan message with callback button
+			w.lastCaravanMessageWithCallback = &tgbotapi.Message{}
+		}()
+	}
 
 	msgStart, err := w.c.Send(&reply)
 	if err != nil {
@@ -209,8 +226,114 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	w.robberingProgress = false
 }
 
+func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *database.User) {
+	if w.robberingProgress {
+		err := w.c.SendReply(
+			msg,
+			"🐫🐪🐫",
+		)
+
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send robberingProgress from fastcaravan")
+		}
+		return
+	}
+
+	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте собираться грабить караван!")
+
+	currentCaravanRobbers := checkPlayersCount(w.robbers)
+	replyMarkup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				fmt.Sprintf(
+					"Погнааале [ %d / %d ]",
+					currentCaravanRobbers,
+					robCount,
+				),
+				"join",
+			),
+		),
+	)
+	reply.ReplyMarkup = replyMarkup
+
+	lastCaravanMessage, err := w.c.Send(&reply)
+
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send fastcaravan message")
+		return
+	}
+
+	if w.lastCaravanMessageWithCallback.From != nil {
+		if err := w.c.DeleteMessage(w.lastCaravanMessageWithCallback); err != nil {
+			w.errors <- errors.Wrap(err, "cannot delete last caravan callback message")
+		}
+	}
+
+	w.lastCaravanMessageWithCallback = lastCaravanMessage
+}
+
+func (w *Wars) HandleFastCaravanCallbackQuery(update *tgbotapi.Update) {
+	if update.CallbackQuery != nil && (update.CallbackQuery.Data != "join") {
+		return
+	}
+
+	user, err := w.db.UserStorage.FindUserByID(context.Background(), update.CallbackQuery.From.ID)
+	if err != nil {
+		// w.errors <- errors.Wrap(err, "cannot find user in fastcaravan")
+		if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Сначала зарегистрируйся"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send inline keyboard reply from caravan callback")
+			return
+		}
+		return
+	}
+
+	// костыль
+	msg := update.CallbackQuery.Message
+	msg.From.ID = update.CallbackQuery.From.ID
+
+	robbersBefore := checkPlayersCount(w.robbers)
+	reply := w.RobCaravans(
+		context.Background(),
+		msg,
+		&user,
+		false,
+	)
+
+	currentCaravanRobbers := checkPlayersCount(w.robbers)
+	updatedMarkup := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(
+				fmt.Sprintf(
+					"Погнааале [ %d / %d ]",
+					currentCaravanRobbers,
+					robCount,
+				),
+				"join",
+			),
+		),
+	)
+
+	if (w.lastCaravanMessageWithCallback.From != nil) && (currentCaravanRobbers != robbersBefore) {
+		edited, err := w.c.EditMessageMarkup(
+			w.lastCaravanMessageWithCallback,
+			&updatedMarkup,
+		)
+
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot edit last caravan message")
+		} else {
+			w.lastCaravanMessageWithCallback = &edited
+		}
+	}
+
+	if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, reply); err != nil {
+		w.errors <- errors.Wrap(err, "cannot send inline keyboard reply from caravan callback")
+		return
+	}
+}
+
 func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
-	result := "**ТОП ИГРОКОВ:**\n"
+	result := "*ТОП ИГРОКОВ:*\n"
 	users, err := w.db.UserStorage.GetTopUsers(ctx, count)
 	if err != nil {
 		w.errors <- errors.Wrap(err, "cannot get top users")
@@ -227,12 +350,12 @@ func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
 		)
 	}
 
-	result += "\n__Региструйся и победи всех__ **/reg**"
+	result += "\n_Региструйся и победи всех_ */reg*"
 	return result
 }
 
 func (w *Wars) HandleBuyItem(msg *tgbotapi.Message) {
-	re := regexp.MustCompile("^[b|B]uy (\\d+) ?(\\d+)?")
+	re := regexp.MustCompile(`^[b|B]uy (\d+) ?(\d+)?`)
 	match := re.FindStringSubmatch(msg.Text)
 
 	if len(match) == 3 {
@@ -257,6 +380,82 @@ func (w *Wars) HandleBuyItem(msg *tgbotapi.Message) {
 	}
 }
 
+func (w *Wars) SendNewShop(ctx context.Context, msg *tgbotapi.Message) {
+	weapons, err := w.db.WeaponStorage.GetAllWeapons(ctx)
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot get weapons")
+		return
+	}
+
+	reply := tgbotapi.NewMessage(msg.Chat.ID, "*Уютный shop 🛒 *")
+	reply.ParseMode = "markdown"
+	keyboard := tgbotapi.InlineKeyboardMarkup{}
+
+	for _, w := range weapons {
+		var row []tgbotapi.InlineKeyboardButton
+		buttonText := fmt.Sprintf("%s %d🏹️, %d💰\n", w.Name, w.Power, w.Cost)
+		buttonClass := fmt.Sprintf("shop%d", w.ID)
+		btn := tgbotapi.NewInlineKeyboardButtonData(buttonText, buttonClass)
+		row = append(row, btn)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+	}
+
+	reply.ReplyMarkup = keyboard
+	_, err = w.c.Send(&reply)
+
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send newshop reply message")
+	}
+}
+
+func (w *Wars) HandleNewShopCallbackQuery(update *tgbotapi.Update) {
+	re := regexp.MustCompile(`shop(\d+)`)
+	match := re.FindStringSubmatch(update.CallbackQuery.Data)
+
+	if len(match) == 2 {
+		weaponID, err := strconv.Atoi(match[1])
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot convert buy match[2] to integer")
+		}
+
+		reply := w.buyFromCallback(context.Background(), update.CallbackQuery.From.ID, weaponID)
+		w.c.SendInlineKeyboardReply(update.CallbackQuery, reply)
+	}
+}
+
+func (w *Wars) buyFromCallback(ctx context.Context, userID int, item int) string {
+	user, err := w.db.UserStorage.FindUserByID(ctx, userID)
+	if err != nil {
+		return "Ошибочка вышла"
+	}
+
+	if user.ID == 0 {
+		return "Сначала /reg"
+	}
+
+	weapon, err := w.db.WeaponStorage.GetWeaponsByID(ctx, item)
+	if err != nil {
+		return "Ошибочка вышла"
+	}
+
+	if user.Coins >= weapon.Cost {
+		if err := w.db.UserStorage.DecreaseMoney(ctx, user.UserID, weapon.Cost); err != nil {
+			w.errors <- errors.Wrap(err, "cannot decrease money")
+			return "Не могу списать монеты"
+		}
+
+		if err := w.db.UserStorage.AddPower(ctx, int(user.UserID), weapon.Power); err != nil {
+			w.errors <- errors.Wrap(err, "cannot add power")
+			return "Не могу добавить мощности"
+		}
+
+		return fmt.Sprintf("Куплено: %s", weapon.Name)
+
+	}
+
+	return fmt.Sprintf("Вам не хватает %d💰!", weapon.Cost-user.Coins)
+}
+
 func (w *Wars) GetShop(ctx context.Context) string {
 	weapons, err := w.db.WeaponStorage.GetAllWeapons(ctx)
 	if err != nil {
@@ -264,7 +463,7 @@ func (w *Wars) GetShop(ctx context.Context) string {
 		return ""
 	}
 
-	reply := "***Уютный shop 🛒 ***\n\n***Оружие:***\n"
+	reply := "*Уютный shop 🛒 *\n\n*Оружие:*\n"
 	for _, w := range weapons {
 		reply += fmt.Sprintf(
 			"%d) ___%s___ %d🏹️, %d💰\n",
@@ -274,7 +473,7 @@ func (w *Wars) GetShop(ctx context.Context) string {
 			w.Cost,
 		)
 	}
-	reply += "\n___Интересный стафф 🦄:___\nПоявится в скором времени...\n\n___Купить товар - реплай на сообщение buy номер товара___"
+	reply += "\n_Интересный стафф 🦄:_\nПоявится в скором времени...\n\n_Купить товар - реплай на сообщение buy номер товара_"
 	return reply
 }
 
@@ -315,7 +514,7 @@ func (w *Wars) buyItem(ctx context.Context, item int, count int, msg *tgbotapi.M
 			err = w.c.SendMarkdownReply(
 				msg,
 				fmt.Sprintf(
-					"Списано ***%d***💰, куплен(а): ___%s___!\n\nПрибавлено %d 🏹 к боевой мощи!",
+					"Списано *%d*💰, куплен(а): _%s_!\n\nПрибавлено %d 🏹 к боевой мощи!",
 					weapon.Cost,
 					weapon.Name,
 					weapon.Power,
@@ -325,7 +524,7 @@ func (w *Wars) buyItem(ctx context.Context, item int, count int, msg *tgbotapi.M
 			err = w.c.SendMarkdownReply(
 				msg,
 				fmt.Sprintf(
-					"Списано ***%d***💰, куплен(а):  ***%d x ***___%s___!\n\nПрибавлено %d 🏹 к боевой мощи!",
+					"Списано *%d*💰, куплен(а):  *%d x *_%s_!\n\nПрибавлено %d 🏹 к боевой мощи!",
 					weapon.Cost*count,
 					count,
 					weapon.Name,
@@ -342,7 +541,7 @@ func (w *Wars) buyItem(ctx context.Context, item int, count int, msg *tgbotapi.M
 		err := w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
-				"Вам не хватает ***%d***💰, чтобы купить ___%s___!",
+				"Вам не хватает *%d*💰, чтобы купить _%s_!",
 				weapon.Cost*count-user.Coins,
 				weapon.Name,
 			),
@@ -389,11 +588,12 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	w.arenaProgress = true
 	ids := getPlayersIDs(w.arenaPlayers)
+	ids = append([]int{}, ids[0], ids[1])
 
 	err := w.c.SendMarkdownReply(
 		msg,
 		fmt.Sprintf(
-			"Начинаем бой между ***@%s***, ***@%s***!",
+			"Начинаем бой между @%s, @%s!",
 			GetMarkdownUsername(w.arenaPlayers[0].Username),
 			GetMarkdownUsername(w.arenaPlayers[1].Username),
 		),
@@ -456,11 +656,11 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 		}
 
 		// SendReply to winner
-		err := w.c.SendMarkdownReply(
+		err = w.c.SendMarkdownReply(
 			msg,
 			fmt.Sprintf(
-				"***@%s*** победил в этом бое. Ему начислено ***%d*** монет и ***%d*** репутации. Проигравшему ___@%s___ снято ***%d*** монет.",
-				GetMarkdownUsername(winner.Username),
+				"@*%s* победил в этом бое. Ему начислено *%d* монет и *%d* репутации. Проигравшему @%s снято *%d* монет.",
+				winner.Username,
 				earnMoney,
 				earnReputation,
 				GetMarkdownUsername(looser.Username),
@@ -489,9 +689,9 @@ func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 		}
 
 		replyString := fmt.Sprintf(
-			"Бой: @%s, @%s был равным, им начислено ***%d*** монеток!",
-			GetMarkdownUsername(w.arenaPlayers[0].Username),
-			GetMarkdownUsername(w.arenaPlayers[1].Username),
+			"Бой: *@%s*, *@%s* был равным, им начислено *%d* монеток!",
+			w.arenaPlayers[0].Username,
+			w.arenaPlayers[1].Username,
 			drawMoney,
 		)
 		if err := w.c.SendMarkdownReply(msg, replyString); err != nil {

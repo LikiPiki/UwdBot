@@ -83,8 +83,7 @@ func (m *Minigames) GetRegisteredCommands() []string {
 
 // --- Poll logic ---
 func (m *Minigames) SendPoll(msg *tgbotapi.Message, poll *Poll, id int) (tgbotapi.Message, error) {
-	var reply tgbotapi.MessageConfig
-	reply = tgbotapi.NewMessage(
+	reply := tgbotapi.NewMessage(
 		msg.Chat.ID,
 		poll.Data.Question,
 	)
