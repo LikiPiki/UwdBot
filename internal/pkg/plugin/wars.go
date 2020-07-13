@@ -529,10 +529,9 @@ func (w *Wars) getTimeBan(msg *tgbotapi.Message, username string, bantime int) {
 		w.errors <- errors.Wrap(err, "cannot ban user fastclicking")
 	}
 
-	err := w.c.SendMarkdownReply(
-		msg,
+	err := w.c.SendMessageToUWDChat(
 		fmt.Sprintf(
-			"@%s, ты забанен на *%d* минут, за фасткликинг по кнопкам. Остудись, я напишу как разбаню тебя!",
+			"@%s, ты забанен на %d минут, за фасткликинг по кнопкам. Остудись, я напишу как разбаню тебя!",
 			GetMarkdownUsername(username),
 			bantime,
 		),
@@ -549,8 +548,7 @@ func (w *Wars) getTimeBan(msg *tgbotapi.Message, username string, bantime int) {
 		w.errors <- errors.Wrap(err, "cannot ban user fastclicking")
 	}
 
-	err = w.c.SendReply(
-		msg,
+	err = w.c.SendMessageToUWDChat(
 		fmt.Sprintf(
 			"@%s, я тебя разбанил, возвращайся!",
 			username,

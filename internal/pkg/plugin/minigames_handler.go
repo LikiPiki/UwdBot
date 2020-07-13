@@ -155,7 +155,10 @@ func (m *Minigames) handlePollCallback(ctx context.Context, callbackQuery *tgbot
 				}
 
 				if _, err = m.c.EditMessageText(currentPoll.Message, text, "markdown"); err != nil {
-					return errors.Wrap(err, "cannot edit message text")
+					return errors.Wrap(
+						err,
+						fmt.Sprintf("cannot edit message text %s", text),
+					)
 				}
 			} else {
 				if err = m.c.SendInlineKeyboardReply(callbackQuery, generateWrong()); err != nil {

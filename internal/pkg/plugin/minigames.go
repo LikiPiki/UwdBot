@@ -151,7 +151,7 @@ func (m *Minigames) GetPollResults(ctx context.Context, winner string, winnerID 
 	if len(poll.members) > 1 {
 		result += fmt.Sprintf(
 			"\nПытались: _%s_",
-			GetMarkdownUsername(m.getAllMembersUsernamesString(winner, poll)),
+			GetItalicUnderlineUsername(m.getAllMembersUsernamesString(winner, poll)),
 		)
 	}
 
