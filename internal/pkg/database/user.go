@@ -73,6 +73,20 @@ func (u *UserStorage) CreateNewUser(ctx context.Context, username string, userID
 	return ID, nil
 }
 
+func (u *UserStorage) CountAllUsers(ctx context.Context) (int, error) {
+	row := u.QueryRow(
+		ctx,
+		"SELECT COUNT (*) FROM users",
+	)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0, errors.Wrap(err, "cannot count all users")
+	}
+
+	return count, nil
+}
+
 func (u *UserStorage) CountUsersWithID(ctx context.Context, id int) (int, error) {
 	row := u.QueryRow(
 		ctx,

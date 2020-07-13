@@ -241,6 +241,8 @@ func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *dat
 
 	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте собираться грабить караван!")
 
+	w.RobCaravans(ctx, msg, user, true)
+
 	currentCaravanRobbers := checkPlayersCount(w.robbers)
 	replyMarkup := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
@@ -349,8 +351,15 @@ func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
 			us.Coins,
 		)
 	}
+	usersCount, err := w.db.UserStorage.CountAllUsers(ctx)
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot count all users in /top")
+	}
 
-	result += "\n_Региструйся и победи всех_ */reg*"
+	result += fmt.Sprintf(
+		"\nВсего в участвуют: %d игроков!\n_Региструйся и победи всех_ */reg*",
+		usersCount,
+	)
 	return result
 }
 
