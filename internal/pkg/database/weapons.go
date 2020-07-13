@@ -2,15 +2,16 @@ package database
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 )
 
 type WeaponsStorage struct {
-	*pgx.Conn
+	*pgxpool.Pool
 }
 
-func NewWeaponsStorage(db *pgx.Conn) *WeaponsStorage {
+func NewWeaponsStorage(db *pgxpool.Pool) *WeaponsStorage {
 	return &WeaponsStorage{db}
 }
 
