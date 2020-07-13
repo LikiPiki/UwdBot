@@ -56,7 +56,7 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 	case "caravan":
 		w.SendCaravanInvite(context.Background(), msg, user)
 	case "shop":
-		go w.SendShopWithKeyboard(context.Background(), msg)
+		go w.SendShopWithKeyboard(context.Background(), msg, user)
 	case "top":
 		go w.c.SendMarkdownReply(
 			msg,

@@ -22,6 +22,8 @@ const (
 	minArenaMoney       = 30
 	minArenaReputation  = 5
 	arenaRoundMaxTime   = 5
+	// Shop constants
+	shopItemsPerpage = 5
 )
 
 // Player struct for arena and caravans players
@@ -358,24 +360,31 @@ func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
 	return result
 }
 
-func (w *Wars) SendShopWithKeyboard(ctx context.Context, msg *tgbotapi.Message) {
-	weapons, err := w.db.WeaponStorage.GetAllWeapons(ctx)
+func checkEqualKeyboards(k1 *tgbotapi.InlineKeyboardMarkup, k2 *tgbotapi.InlineKeyboardMarkup) bool {
+	return true
+}
+
+func (w *Wars) SendShopWithKeyboard(ctx context.Context, msg *tgbotapi.Message, user *database.User) {
+	weapons, err := w.db.WeaponStorage.GetWeaponsLimitOffset(ctx, shopItemsPerpage, 0)
 	if err != nil {
 		w.errors <- errors.Wrap(err, "cannot get weapons")
 		return
 	}
 
+	if len(weapons) == 0 {
+		if err := w.c.SendReply(msg, "Ты не можешь ничего купить, у тебя мало денег!"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send can buy anything in shop")
+		}
+		return
+	}
+
 	reply := tgbotapi.NewMessage(msg.Chat.ID, "*Уютный shop 🛒 *")
 	reply.ParseMode = "markdown"
-	keyboard := tgbotapi.InlineKeyboardMarkup{}
 
-	for _, w := range weapons {
-		var row []tgbotapi.InlineKeyboardButton
-		buttonText := fmt.Sprintf("%s %d🏹️, %d💰\n", w.Name, w.Power, w.Cost)
-		buttonClass := fmt.Sprintf("shop%d", w.ID)
-		btn := tgbotapi.NewInlineKeyboardButtonData(buttonText, buttonClass)
-		row = append(row, btn)
-		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+	keyboard, err := w.GenerateWeaponsKeyboard(weapons, msg.From.ID, 0)
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot generate shop weapons keyboard")
+		return
 	}
 
 	reply.ReplyMarkup = keyboard
@@ -386,7 +395,44 @@ func (w *Wars) SendShopWithKeyboard(ctx context.Context, msg *tgbotapi.Message) 
 	}
 }
 
+func (w *Wars) GenerateWeaponsKeyboard(weapons []database.Weapon, userID int, offset int) (tgbotapi.InlineKeyboardMarkup, error) {
+	// count all weapons items to create pagination
+	weaponsCount, err := w.db.WeaponStorage.GetWeaponsCount(context.Background())
+	weaponsCount += (weaponsCount / 5) % 5
+	keyboard := tgbotapi.InlineKeyboardMarkup{}
+	if err != nil {
+		return keyboard, err
+	}
+
+	for _, w := range weapons {
+		var row []tgbotapi.InlineKeyboardButton
+		buttonText := fmt.Sprintf("%s %d🏹️, %d💰\n", w.Name, w.Power, w.Cost)
+		buttonClass := fmt.Sprintf("shop%d", w.ID)
+		btn := tgbotapi.NewInlineKeyboardButtonData(buttonText, buttonClass)
+		row = append(row, btn)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+	}
+	var buttonNavRow []tgbotapi.InlineKeyboardButton
+
+	// generate button <-, -> if need
+	if offset != 0 {
+		prevBtn := tgbotapi.NewInlineKeyboardButtonData("<- Сюда", fmt.Sprintf("p%d %d", offset, userID))
+		buttonNavRow = append(buttonNavRow, prevBtn)
+	}
+
+	if weaponsCount-shopItemsPerpage > offset {
+		nextBtn := tgbotapi.NewInlineKeyboardButtonData("Туда ->", fmt.Sprintf("n%d %d", offset, userID))
+		buttonNavRow = append(buttonNavRow, nextBtn)
+	}
+
+	if len(buttonNavRow) > 0 {
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, buttonNavRow)
+	}
+	return keyboard, nil
+}
+
 func (w *Wars) HandleNewShopCallbackQuery(update *tgbotapi.Update) {
+	ctx := context.Background()
 	re := regexp.MustCompile(`shop(\d+)`)
 	match := re.FindStringSubmatch(update.CallbackQuery.Data)
 
@@ -394,10 +440,125 @@ func (w *Wars) HandleNewShopCallbackQuery(update *tgbotapi.Update) {
 		weaponID, err := strconv.Atoi(match[1])
 		if err != nil {
 			w.errors <- errors.Wrap(err, "cannot convert buy match[2] to integer")
+			return
 		}
 
-		reply := w.buyFromCallback(context.Background(), update.CallbackQuery.From.ID, weaponID)
-		w.c.SendInlineKeyboardReply(update.CallbackQuery, reply)
+		reply := w.buyFromCallback(ctx, update.CallbackQuery.From.ID, weaponID)
+		err = w.c.SendInlineKeyboardReply(update.CallbackQuery, reply)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot send inline callback reply from shop")
+			return
+		}
+		return
+	}
+
+	user, err := w.db.UserStorage.FindUserByID(ctx, update.CallbackQuery.From.ID)
+	if err != nil {
+		if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Ты не зарегистрирован!"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send inline shop reply to not reg user")
+		}
+	}
+
+	if user.Blacklist {
+		if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Ты забанен!"); err != nil {
+			w.errors <- errors.Wrap(err, "cannot send inline shop reply to ban user")
+		}
+	}
+	re = regexp.MustCompile(`([p|n])(\d+) (\d+)`)
+	match = re.FindStringSubmatch(update.CallbackQuery.Data)
+
+	if len(match) == 4 {
+		direction := match[1]
+		currentOffset, err := strconv.Atoi(match[2])
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot parse regexp offset in inline button callback")
+			return
+		}
+		userID, err := strconv.Atoi(match[3])
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot parse regexp in userID inline button callback")
+			return
+		}
+
+		if update.CallbackQuery.From.ID != userID {
+			if err := w.c.SendInlineKeyboardReply(update.CallbackQuery, "Это не ваш открытый магазин, чтобы его листать!"); err != nil {
+				w.errors <- errors.Wrap(err, "cannot send inline reply to callback query")
+			}
+			return
+		}
+
+		switch direction {
+		case "n":
+			currentOffset += shopItemsPerpage
+		case "p":
+			currentOffset -= shopItemsPerpage
+			if currentOffset < 0 {
+				currentOffset = 0
+			}
+		}
+
+		weapons, err := w.db.WeaponStorage.GetWeaponsLimitOffset(ctx, shopItemsPerpage, currentOffset)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot get weapons with limit and offset")
+			return
+		}
+
+		keyboard, err := w.GenerateWeaponsKeyboard(weapons, update.CallbackQuery.From.ID, currentOffset)
+		if err != nil {
+			w.errors <- errors.Wrap(err, "cannot generate shop weapons keyboard")
+			return
+		}
+
+		_, err = w.c.EditMessageMarkup(update.CallbackQuery.Message, &keyboard)
+		if err != nil {
+			// Ignore this, because if fastclick button, happens lag
+			// w.errors <- errors.Wrap(err, "cannot get weapons with limit and offset")
+			// 5 min ban if spamming
+			go w.getTimeBan(update.CallbackQuery.Message, update.CallbackQuery.From.UserName, 5)
+			if err := w.c.DeleteMessage(update.CallbackQuery.Message); err != nil {
+				w.errors <- errors.Wrap(err, "cannot delete message, for fastclicking")
+			}
+
+			return
+		}
+	}
+}
+
+func (w *Wars) getTimeBan(msg *tgbotapi.Message, username string, bantime int) {
+	if err := w.db.UserStorage.SwitchBanUser(context.Background(), username, true); err != nil {
+		w.errors <- errors.Wrap(err, "cannot ban user fastclicking")
+	}
+
+	err := w.c.SendMarkdownReply(
+		msg,
+		fmt.Sprintf(
+			"@%s, ты забанен на *%d* минут, за фасткликинг по кнопкам. Остудись, я напишу как разбаню тебя!",
+			GetMarkdownUsername(username),
+			bantime,
+		),
+	)
+
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send ban message to user fastclicking")
+	}
+
+	timer1 := time.NewTimer(time.Minute * time.Duration(bantime))
+	<-timer1.C
+
+	if err := w.db.UserStorage.SwitchBanUser(context.Background(), username, false); err != nil {
+		w.errors <- errors.Wrap(err, "cannot ban user fastclicking")
+	}
+
+	err = w.c.SendReply(
+		msg,
+		fmt.Sprintf(
+			"@%s, я тебя разбанил, возвращайся!",
+			username,
+		),
+	)
+
+	if err != nil {
+		w.errors <- errors.Wrap(err, "cannot send unban message to user fastclicking")
 	}
 }
 
