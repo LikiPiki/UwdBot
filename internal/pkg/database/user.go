@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 )
 
@@ -14,10 +14,10 @@ const (
 )
 
 type UserStorage struct {
-	*pgx.Conn
+	*pgxpool.Pool
 }
 
-func NewUserStorage(db *pgx.Conn) *UserStorage {
+func NewUserStorage(db *pgxpool.Pool) *UserStorage {
 	return &UserStorage{db}
 }
 

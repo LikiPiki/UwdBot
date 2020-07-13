@@ -2,19 +2,20 @@ package database
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4"
 	"log"
 	"os"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type Database struct {
-	db            *pgx.Conn
+	db            *pgxpool.Pool
 	UserStorage   *UserStorage
 	WeaponStorage *WeaponsStorage
 }
 
 func NewDatabase(context context.Context) (*Database, error) {
-	db, err := pgx.Connect(context, os.Getenv("DATABASE_URL"))
+	db, err := pgxpool.Connect(context, os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
@@ -27,6 +28,6 @@ func NewDatabase(context context.Context) (*Database, error) {
 	}, nil
 }
 
-func (d *Database) Close() error {
-	return d.db.Close(context.Background())
+func (d *Database) Close() {
+	d.db.Close()
 }
