@@ -82,6 +82,7 @@ func main() {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	db, err := database.NewDatabase(context.Background())
+	defer db.Close()
 	if err != nil {
 		log.Fatalln("cannot connect to DB", err)
 	}
