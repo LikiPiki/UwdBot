@@ -30,9 +30,7 @@ func (w *Wars) Init(s *sender.Sender, db *database.Database) {
 	w.errors = make(chan error)
 }
 
-func (w *Wars) HandleMessages(msg *tgbotapi.Message) {
-	w.HandleBuyItem(msg)
-}
+func (w *Wars) HandleMessages(msg *tgbotapi.Message) {}
 
 func (w *Wars) HandleCommands(msg *tgbotapi.Message, command string) {
 	switch command {
@@ -55,23 +53,10 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 		if err := w.c.SendMarkdownReply(msg, replyString); err != nil {
 			w.errors <- errors.Wrap(err, "cannot send arena reply")
 		}
-	case "fastcaravan":
-		w.FastCaravan(context.Background(), msg, user)
 	case "caravan":
-		reply := w.RobCaravans(context.Background(), msg, user, false)
-		if reply != "" {
-			go w.c.SendMarkdownReply(
-				msg,
-				reply,
-			)
-		}
-	case "newshop":
-		go w.SendNewShop(context.Background(), msg)
+		w.SendCaravanInvite(context.Background(), msg, user)
 	case "shop":
-		go w.c.SendMarkdownReply(
-			msg,
-			w.GetShop(context.Background()),
-		)
+		go w.SendShopWithKeyboard(context.Background(), msg)
 	case "top":
 		go w.c.SendMarkdownReply(
 			msg,
@@ -81,7 +66,7 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 }
 
 func (w *Wars) HandleCallbackQuery(update *tgbotapi.Update) {
-	w.HandleFastCaravanCallbackQuery(update)
+	w.HandleCaravanCallbackQuery(update)
 	w.HandleNewShopCallbackQuery(update)
 }
 
@@ -89,10 +74,8 @@ func (w *Wars) HandleAdminCommands(*tgbotapi.Message) {}
 
 func (w *Wars) GetRegisteredCommands() []string {
 	return []string{
-		"fastcaravan",
 		"arena",
 		"shop",
-		"newshop",
 		"top",
 		"caravan",
 	}

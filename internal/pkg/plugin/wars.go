@@ -89,7 +89,7 @@ func checkPlayersCount(players Players) int {
 	return count
 }
 
-func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User, markdownEn bool) string {
+func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
 	robbersCount := checkPlayersCount(w.robbers)
 	if robbersCount == robCount {
 		return "🐫🐪🐫"
@@ -109,12 +109,8 @@ func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *dat
 		}
 	}
 
-	replyStr := "Для отправления каравана нужно еще *%d* грабителя!"
-	if !markdownEn {
-		replyStr = "Для отправления каравана нужно еще %d грабителя!"
-	}
 	return fmt.Sprintf(
-		replyStr,
+		"Для отправления каравана нужно еще %d грабителя!",
 		robCount-robbersCount,
 	)
 }
@@ -226,7 +222,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	w.robberingProgress = false
 }
 
-func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *database.User) {
+func (w *Wars) SendCaravanInvite(ctx context.Context, msg *tgbotapi.Message, user *database.User) {
 	if w.robberingProgress {
 		err := w.c.SendReply(
 			msg,
@@ -241,7 +237,7 @@ func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *dat
 
 	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте собираться грабить караван!")
 
-	w.RobCaravans(ctx, msg, user, true)
+	w.RobCaravans(ctx, msg, user)
 
 	currentCaravanRobbers := checkPlayersCount(w.robbers)
 	replyMarkup := tgbotapi.NewInlineKeyboardMarkup(
@@ -261,7 +257,7 @@ func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *dat
 	lastCaravanMessage, err := w.c.Send(&reply)
 
 	if err != nil {
-		w.errors <- errors.Wrap(err, "cannot send fastcaravan message")
+		w.errors <- errors.Wrap(err, "cannot send caravan message")
 		return
 	}
 
@@ -274,7 +270,7 @@ func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *dat
 	w.lastCaravanMessageWithCallback = lastCaravanMessage
 }
 
-func (w *Wars) HandleFastCaravanCallbackQuery(update *tgbotapi.Update) {
+func (w *Wars) HandleCaravanCallbackQuery(update *tgbotapi.Update) {
 	if update.CallbackQuery != nil && (update.CallbackQuery.Data != "join") {
 		return
 	}
@@ -298,7 +294,6 @@ func (w *Wars) HandleFastCaravanCallbackQuery(update *tgbotapi.Update) {
 		context.Background(),
 		msg,
 		&user,
-		false,
 	)
 
 	currentCaravanRobbers := checkPlayersCount(w.robbers)
@@ -363,33 +358,7 @@ func (w *Wars) GetTopPlayers(ctx context.Context, count int) string {
 	return result
 }
 
-func (w *Wars) HandleBuyItem(msg *tgbotapi.Message) {
-	re := regexp.MustCompile(`^[b|B]uy (\d+) ?(\d+)?`)
-	match := re.FindStringSubmatch(msg.Text)
-
-	if len(match) == 3 {
-		count := 1
-
-		if match[2] != "" {
-			var err error
-			count, err = strconv.Atoi(match[2])
-			if err != nil {
-				w.errors <- errors.Wrap(err, "cannot convert buy match[2] to integer")
-			}
-		}
-		itemNumber, err := strconv.Atoi(match[1])
-		if err != nil {
-			if err := w.c.SendReplyToMessage(msg, "Не правильно указан номер товара"); err != nil {
-				w.errors <- errors.Wrap(err, "cannot send reply to message")
-			}
-			return
-		}
-
-		w.buyItem(context.Background(), itemNumber, count, msg)
-	}
-}
-
-func (w *Wars) SendNewShop(ctx context.Context, msg *tgbotapi.Message) {
+func (w *Wars) SendShopWithKeyboard(ctx context.Context, msg *tgbotapi.Message) {
 	weapons, err := w.db.WeaponStorage.GetAllWeapons(ctx)
 	if err != nil {
 		w.errors <- errors.Wrap(err, "cannot get weapons")
@@ -463,102 +432,6 @@ func (w *Wars) buyFromCallback(ctx context.Context, userID int, item int) string
 	}
 
 	return fmt.Sprintf("Вам не хватает %d💰!", weapon.Cost-user.Coins)
-}
-
-func (w *Wars) GetShop(ctx context.Context) string {
-	weapons, err := w.db.WeaponStorage.GetAllWeapons(ctx)
-	if err != nil {
-		w.errors <- errors.Wrap(err, "cannot get weapons")
-		return ""
-	}
-
-	reply := "*Уютный shop 🛒 *\n\n*Оружие:*\n"
-	for _, w := range weapons {
-		reply += fmt.Sprintf(
-			"%d) ___%s___ %d🏹️, %d💰\n",
-			w.ID,
-			w.Name,
-			w.Power,
-			w.Cost,
-		)
-	}
-	reply += "\n_Интересный стафф 🦄:_\nПоявится в скором времени...\n\n_Купить товар - реплай на сообщение buy номер товара_"
-	return reply
-}
-
-func (w *Wars) buyItem(ctx context.Context, item int, count int, msg *tgbotapi.Message) {
-	user, err := w.db.UserStorage.FindUserByID(ctx, msg.From.ID)
-	if err != nil {
-		w.errors <- errors.Wrap(err, "cannot find user")
-		return
-	}
-
-	if user.ID == 0 {
-		if err := w.c.SendReplyToMessage(msg, "Вы не зарегистрированы /reg"); err != nil {
-			w.errors <- errors.Wrap(err, "cannot send reply")
-		}
-		return
-	}
-
-	weapon, err := w.db.WeaponStorage.GetWeaponsByID(ctx, item)
-	if err != nil {
-		w.errors <- errors.Wrap(err, "cannot get weapon by id")
-		return
-	}
-
-	if user.Coins >= weapon.Cost*count {
-		if err := w.db.UserStorage.DecreaseMoney(ctx, user.UserID, weapon.Cost*count); err != nil {
-			w.errors <- errors.Wrap(err, "cannot decrease money")
-			return
-		}
-
-		if err := w.db.UserStorage.AddPower(ctx, int(user.UserID), weapon.Power*count); err != nil {
-			w.errors <- errors.Wrap(err, "cannot add power")
-			return
-		}
-
-		var err error
-		switch count {
-		case 1:
-			err = w.c.SendMarkdownReply(
-				msg,
-				fmt.Sprintf(
-					"Списано *%d*💰, куплен(а): _%s_!\n\nПрибавлено %d 🏹 к боевой мощи!",
-					weapon.Cost,
-					weapon.Name,
-					weapon.Power,
-				),
-			)
-		default:
-			err = w.c.SendMarkdownReply(
-				msg,
-				fmt.Sprintf(
-					"Списано *%d*💰, куплен(а):  *%d x *_%s_!\n\nПрибавлено %d 🏹 к боевой мощи!",
-					weapon.Cost*count,
-					count,
-					weapon.Name,
-					weapon.Power*count,
-				),
-			)
-		}
-
-		if err != nil {
-			w.errors <- errors.Wrap(err, "cannot send reply")
-		}
-
-	} else {
-		err := w.c.SendMarkdownReply(
-			msg,
-			fmt.Sprintf(
-				"Вам не хватает *%d*💰, чтобы купить _%s_!",
-				weapon.Cost*count-user.Coins,
-				weapon.Name,
-			),
-		)
-		if err != nil {
-			w.errors <- errors.Wrap(err, "cannot send reply")
-		}
-	}
 }
 
 // Arena gameplay
