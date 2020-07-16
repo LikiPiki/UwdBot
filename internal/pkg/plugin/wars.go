@@ -239,7 +239,7 @@ func (w *Wars) FastCaravan(ctx context.Context, msg *tgbotapi.Message, user *dat
 		return
 	}
 
-	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте собираться грабить караван!")
+	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте грабить караван!")
 
 	w.RobCaravans(ctx, msg, user, true)
 

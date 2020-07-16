@@ -47,7 +47,13 @@ func (c *Controller) Switch(ctx context.Context, updates tgbotapi.UpdatesChannel
 		msg := update.Message
 
 		if update.CallbackQuery != nil {
-			c.handleCallbackQuery(update)
+			c.handleCallbackQuery(&update)
+			continue
+		}
+
+		if (update.Message == nil) && (update.InlineQuery != nil) {
+			c.handleInlineQuery(&update)
+			continue
 		}
 
 		if update.Message == nil { // ignore any non-Message Updates
@@ -80,6 +86,7 @@ func (c *Controller) Switch(ctx context.Context, updates tgbotapi.UpdatesChannel
 				}
 			}
 		}
+
 	}
 }
 
@@ -190,9 +197,15 @@ func (c *Controller) handleRegisterUserCommand(ctx context.Context, msg *tgbotap
 	return nil
 }
 
-func (c *Controller) handleCallbackQuery(update tgbotapi.Update) {
+func (c *Controller) handleCallbackQuery(update *tgbotapi.Update) {
 	for _, plug := range c.app.Plugs {
-		plug.HandleCallbackQuery(&update)
+		plug.HandleCallbackQuery(update)
+	}
+}
+
+func (c *Controller) handleInlineQuery(update *tgbotapi.Update) {
+	for _, plug := range c.app.Plugs {
+		plug.HandleInlineCommands(update)
 	}
 }
 

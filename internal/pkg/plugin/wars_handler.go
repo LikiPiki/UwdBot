@@ -87,6 +87,8 @@ func (w *Wars) HandleCallbackQuery(update *tgbotapi.Update) {
 
 func (w *Wars) HandleAdminCommands(*tgbotapi.Message) {}
 
+func (w *Wars) HandleInlineCommands(update *tgbotapi.Update) {}
+
 func (w *Wars) GetRegisteredCommands() []string {
 	return []string{
 		"fastcaravan",
