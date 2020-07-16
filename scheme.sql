@@ -29,7 +29,7 @@ create table if not exists gifs (
 	gifid varchar(100)
 );
 
-insert into gifs (gifid) values('CgACAgIAAxkBAAEBarRfEHQH0e3B8h_QLnqHh8wPzkldBwACTQgAAmuyiUi0FbFp2WqqzxoE');
+insert into gifs (gifid) values('CgACAgIAAxkBAAEBazBfEICPj4J8Nz8ye_fDTC9XpUbXvQACiwIAAlZ1-Evv5nW_s4djKhoE');
 
 insert into weapons (name, power, cost) values('Палка', 1, 10);
 insert into weapons (name, power, cost) values('Копыто', 5, 40);

@@ -46,10 +46,11 @@ func (g *GifsStorage) GetGifWithOffset(ctx context.Context, offset int) (Gif, er
 }
 
 func (g *GifsStorage) InsertGif(ctx context.Context, gifID string) error {
+	eqID := "%" + gifID[len(gifID)-21:]
 	row := g.QueryRow(
 		ctx,
-		"SELECT COUNT (*) FROM gifs WHERE gifid = $1",
-		gifID,
+		"SELECT COUNT (*) FROM gifs WHERE gifid LIKE $1",
+		eqID,
 	)
 
 	var count int

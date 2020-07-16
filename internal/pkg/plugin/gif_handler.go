@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"os"
 	"sync"
 
 	"github.com/LikiPiki/UwdBot/internal/pkg/database"
@@ -27,16 +26,6 @@ func (g *Gif) Init(s *sender.Sender, db *database.Database) {
 	g.c = s
 	g.db = db
 	g.errors = make(chan error)
-	g.gifs = make([]string, gifLimit)
-
-	token, exist := os.LookupEnv("TENOR_TOKEN")
-	if !exist {
-		panic("You must add GIPHY_TOKEN to .env file or remove Gif plugin from plugin list")
-	}
-
-	go g.loadGifs()
-
-	g.tenorToken = token
 }
 
 // Handle messages (not commands, like regex queries)
