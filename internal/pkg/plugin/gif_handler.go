@@ -50,7 +50,11 @@ func (g *Gif) HandleRegisterCommands(msg *tgbotapi.Message, command string, user
 func (g *Gif) HandleCallbackQuery(update *tgbotapi.Update) {}
 
 // Commands for admin only
-func (g *Gif) HandleAdminCommands(msg *tgbotapi.Message) {}
+func (g *Gif) HandleAdminCommands(msg *tgbotapi.Message) {
+	if (msg.Text == "del") && (msg.ReplyToMessage.Animation != nil) {
+		go g.DeleteGif(msg, msg.ReplyToMessage.Animation.FileID)
+	}
+}
 
 // Get all plugin existing commands
 func (g *Gif) GetRegisteredCommands() []string {

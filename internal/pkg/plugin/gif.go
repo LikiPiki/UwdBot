@@ -37,3 +37,25 @@ func (g *Gif) AddGifIfNeed(msg *tgbotapi.Message) {
 		return
 	}
 }
+
+func (g *Gif) DeleteGif(msg *tgbotapi.Message, fileID string) {
+	// Deleting gif from postgre
+	err := g.db.GifsStorage.DeleteGifByFileID(context.Background(), fileID)
+	if err != nil {
+		g.errors <- errors.Wrap(err, "cannot delete this GIF")
+		return
+	}
+
+	err = g.c.SendMarkdownReply(msg, "Капитан, гифка удалена!")
+	if err != nil {
+		g.errors <- errors.Wrap(err, "cannot send GIF deleted msg")
+		return
+	}
+
+	//Deleting gif from chat
+	err = g.c.DeleteMessage(msg.ReplyToMessage)
+	if err != nil {
+		g.errors <- errors.Wrap(err, "cannot delete gif message")
+		return
+	}
+}

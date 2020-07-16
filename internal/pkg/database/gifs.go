@@ -76,3 +76,23 @@ func (g *GifsStorage) InsertGif(ctx context.Context, gifID string) error {
 
 	return nil
 }
+
+func (g *GifsStorage) DeleteGifByFileID(ctx context.Context, fileID string) error {
+	eqID := "%" + fileID[len(fileID)-21:]
+
+	commandTag, err := g.Exec(
+		ctx,
+		"DELETE FROM gifs WHERE gifid LIKE $1",
+		eqID,
+	)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot delete gif")
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		return errors.New("no row found to delete")
+	}
+
+	return nil
+}
