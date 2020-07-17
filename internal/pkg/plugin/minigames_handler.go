@@ -72,6 +72,8 @@ func (m *Minigames) HandleCallbackQuery(update *tgbotapi.Update) {
 	}
 }
 
+func (m *Minigames) HandleInlineCommands(update *tgbotapi.Update) {}
+
 func (m *Minigames) HandleAdminCommands(*tgbotapi.Message) {}
 
 func (m *Minigames) GetRegisteredCommands() []string {

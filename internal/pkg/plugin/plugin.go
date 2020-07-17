@@ -20,6 +20,8 @@ type Plugin interface {
 	HandleCallbackQuery(update *tgbotapi.Update)
 	// Commands for admin only
 	HandleAdminCommands(msg *tgbotapi.Message)
+	// Handle inline commands
+	HandleInlineCommands(update *tgbotapi.Update)
 	// Get all plugin existing commands
 	GetRegisteredCommands() []string
 	// Returns errors from plugin

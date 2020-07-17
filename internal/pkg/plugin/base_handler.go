@@ -60,6 +60,8 @@ func (b *Base) HandleAdminCommands(msg *tgbotapi.Message) {
 	}
 }
 
+func (b *Base) HandleInlineCommands(update *tgbotapi.Update) {}
+
 func (b *Base) GetRegisteredCommands() []string {
 	return []string{}
 }

@@ -49,6 +49,7 @@ func main() {
 			panic(err)
 		}
 	}
+
 	adminChatID, exists := os.LookupEnv("ADMIN_ID")
 	if exists {
 		var err error
@@ -94,6 +95,7 @@ func main() {
 		&pl.Wars{},
 		&pl.Minigames{},
 		&pl.Profiler{},
+		&pl.Weather{},
 		&pl.Gif{},
 	}
 
