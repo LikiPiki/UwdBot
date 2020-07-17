@@ -24,6 +24,13 @@ create table if not exists weapons (
 	cost int default 0
 );
 
+create table if not exists gifs (
+	id serial primary key,
+	gifid varchar(100)
+);
+
+insert into gifs (gifid) values('CgACAgIAAxkBAAEBazBfEICPj4J8Nz8ye_fDTC9XpUbXvQACiwIAAlZ1-Evv5nW_s4djKhoE');
+
 insert into weapons (name, power, cost) values('Палка', 1, 10);
 insert into weapons (name, power, cost) values('Копыто', 5, 40);
 insert into weapons (name, power, cost) values('Водный пистолет', 6, 50);

@@ -94,6 +94,7 @@ func main() {
 		&pl.Wars{},
 		&pl.Minigames{},
 		&pl.Profiler{},
+		&pl.Gif{},
 	}
 
 	for _, plug := range plugins {
