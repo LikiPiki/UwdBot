@@ -192,6 +192,15 @@ func (s *Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode s
 	return message, nil
 }
 
+func (s *Sender) AnswerInlineQuery(config *tgbotapi.InlineConfig) error {
+	_, err := s.bot.AnswerInlineQuery(*config)
+	if err != nil {
+		return errors.Wrap(err, "cannot answer to inline query")
+	}
+
+	return nil
+}
+
 func (s *Sender) SendStickerOrText(msg *tgbotapi.Message, chance int, sending string) error {
 	switch chance {
 	case Sticker:

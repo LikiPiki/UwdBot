@@ -138,7 +138,7 @@ func (m *Minigames) GetPollResults(ctx context.Context, winner string, winnerID 
 	}
 
 	if user.ID > 0 {
-		money := rand.Intn(11)
+		money := rand.Intn(10) + 1
 		result += fmt.Sprintf(
 			" + %d💰",
 			money,

@@ -108,6 +108,9 @@ func (p *Profiler) HandleRegisterCommands(msg *tgbotapi.Message, command string,
 
 func (p *Profiler) HandleCallbackQuery(*tgbotapi.Update) {}
 
+func (p *Profiler) HandleInlineCommands(update *tgbotapi.Update) {
+}
+
 func (p *Profiler) HandleAdminCommands(msg *tgbotapi.Message) {
 	p.HandleAdminRegexpCommands(msg)
 }

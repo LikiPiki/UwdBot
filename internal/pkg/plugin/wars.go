@@ -237,7 +237,7 @@ func (w *Wars) SendCaravanInvite(ctx context.Context, msg *tgbotapi.Message, use
 		return
 	}
 
-	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте собираться грабить караван!")
+	reply := tgbotapi.NewMessage(msg.Chat.ID, "Друзья, давайте грабить караван!")
 
 	w.RobCaravans(ctx, msg, user)
 

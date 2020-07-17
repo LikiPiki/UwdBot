@@ -56,6 +56,10 @@ func (g *Gif) HandleAdminCommands(msg *tgbotapi.Message) {
 	}
 }
 
+// Handle inline commands
+func (g *Gif) HandleInlineCommands(update *tgbotapi.Update) {
+}
+
 // Get all plugin existing commands
 func (g *Gif) GetRegisteredCommands() []string {
 	return []string{}
