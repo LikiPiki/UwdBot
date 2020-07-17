@@ -1,6 +1,8 @@
 package sender
 
 import (
+	"net/http"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
 )
@@ -143,6 +145,33 @@ func (s *Sender) DeleteMessage(msg *tgbotapi.Message) error {
 	}
 
 	return nil
+}
+
+func (s *Sender) SendGif(msg *tgbotapi.Message, gifURL string, gifTitle string) (*tgbotapi.Message, error) {
+	if gifTitle == "" {
+		gifTitle = "random"
+	}
+	resp, err := http.Get(gifURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot perform HTTP GET request")
+	}
+
+	file := tgbotapi.FileReader{
+		Name:   "random.gif",
+		Size:   -1,
+		Reader: resp.Body,
+	}
+
+	gif := tgbotapi.NewAnimationUpload(msg.Chat.ID, file)
+
+	sended, err := s.bot.Send(gif)
+	return &sended, err
+}
+
+func (s *Sender) SendExistingGif(msg *tgbotapi.Message, gifID string) (tgbotapi.Message, error) {
+	gif := tgbotapi.NewAnimationShare(msg.Chat.ID, gifID)
+	sended, err := s.bot.Send(gif)
+	return sended, err
 }
 
 func (s *Sender) EditMessageText(msg *tgbotapi.Message, text string, parsemode string) (tgbotapi.Message, error) {

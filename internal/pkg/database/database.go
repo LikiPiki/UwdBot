@@ -12,6 +12,7 @@ type Database struct {
 	db            *pgxpool.Pool
 	UserStorage   *UserStorage
 	WeaponStorage *WeaponsStorage
+	GifsStorage   *GifsStorage
 }
 
 func NewDatabase(context context.Context) (*Database, error) {
@@ -25,6 +26,7 @@ func NewDatabase(context context.Context) (*Database, error) {
 	return &Database{
 		UserStorage:   NewUserStorage(db),
 		WeaponStorage: NewWeaponsStorage(db),
+		GifsStorage:   NewGifsStorage(db),
 	}, nil
 }
 
