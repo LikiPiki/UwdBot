@@ -109,20 +109,6 @@ func (p *Profiler) HandleRegisterCommands(msg *tgbotapi.Message, command string,
 func (p *Profiler) HandleCallbackQuery(*tgbotapi.Update) {}
 
 func (p *Profiler) HandleInlineCommands(update *tgbotapi.Update) {
-	var articles []interface{}
-	msg := tgbotapi.NewInlineQueryResultArticleMarkdown(update.InlineQuery.ID, "test", "test")
-	articles = append(articles, msg)
-
-	inlineConfig := tgbotapi.InlineConfig{
-		InlineQueryID: update.InlineQuery.ID,
-		IsPersonal:    true,
-		CacheTime:     0,
-		Results:       articles,
-	}
-
-	if err := p.c.AnswerInlineQuery(&inlineConfig); err != nil {
-		log.Println(err)
-	}
 }
 
 func (p *Profiler) HandleAdminCommands(msg *tgbotapi.Message) {
