@@ -8,14 +8,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	gifLimit = 500
+)
+
 func (g *Gif) SendExistingGif(msg *tgbotapi.Message) {
 	gifCount, err := g.db.GifsStorage.CountAllGifs(context.Background())
 	if err != nil {
 		g.errors <- errors.Wrap(err, "cannot get gifs count")
 		return
 	}
-	randGif := rand.Intn(gifCount)
 
+	randGif := rand.Intn(gifCount)
 	gifToSend, err := g.db.GifsStorage.GetGifWithOffset(context.Background(), randGif)
 
 	if err != nil {
@@ -31,7 +35,30 @@ func (g *Gif) SendExistingGif(msg *tgbotapi.Message) {
 }
 
 func (g *Gif) AddGifIfNeed(msg *tgbotapi.Message) {
-	err := g.db.GifsStorage.InsertGif(context.Background(), msg.Animation.FileID)
+	ctx := context.Background()
+
+	gifCount, err := g.db.GifsStorage.CountAllGifs(ctx)
+	if err != nil {
+		g.errors <- errors.Wrap(err, "cannot count gifs")
+		return
+	}
+
+	randGif := rand.Intn(gifCount)
+	gifToReplace, err := g.db.GifsStorage.GetGifWithOffset(context.Background(), randGif)
+	if err != nil {
+		g.errors <- errors.Wrap(err, "cannot get gif to replace")
+		return
+	}
+
+	if gifCount >= gifLimit {
+		err := g.db.GifsStorage.ReplaceGifByID(ctx, gifToReplace.ID, msg.Animation.FileID)
+		if err != nil {
+			g.errors <- errors.Wrap(err, "cannot replace gif to another")
+		}
+		return
+	}
+
+	err = g.db.GifsStorage.InsertGif(ctx, msg.Animation.FileID)
 	if err != nil {
 		g.errors <- errors.Wrap(err, "cannot add gif to database")
 		return

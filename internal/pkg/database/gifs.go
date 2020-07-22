@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
@@ -43,6 +44,30 @@ func (g *GifsStorage) GetGifWithOffset(ctx context.Context, offset int) (Gif, er
 	}
 
 	return gif, nil
+}
+
+func (g *GifsStorage) ReplaceGifByID(ctx context.Context, gifID uint64, newGIF string) error {
+	commandTag, err := g.Exec(
+		ctx,
+		"UPDATE gifs SET gifid = $1 where id = $2",
+		gifID,
+		newGIF,
+	)
+
+	if err != nil {
+		return errors.Wrap(err, "cannot update gif in db")
+	}
+
+	if commandTag.RowsAffected() != 1 {
+		return errors.New(
+			fmt.Sprintf(
+				"Rows affected %d but excepted 1",
+				commandTag.RowsAffected(),
+			),
+		)
+	}
+
+	return nil
 }
 
 func (g *GifsStorage) InsertGif(ctx context.Context, gifID string) error {
