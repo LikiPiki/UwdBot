@@ -6,9 +6,9 @@ create table if not exists users (
 	isAdmin boolean default false,
 	coins integer default 100,
 	reputation integer default 100,
-	weapons_power integer default 0,
+	weapons_power integer default 0, 
 	activ_date DATE default CURRENT_TIMESTAMP,
-	activity int default 10
+	activity integer default 10
 );
 
 insert into users (username, isAdmin, coins, userID)
