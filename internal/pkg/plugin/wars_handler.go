@@ -28,6 +28,10 @@ func (w *Wars) Init(s *sender.Sender, db *database.Database) {
 	w.db = db
 	w.lastCaravanMessageWithCallback = &tgbotapi.Message{}
 	w.errors = make(chan error)
+
+	// Init players for arena and caravans games
+	w.arenaPlayers = make(Players, arenaPlayersToStart)
+	w.robbers = make(Players, caravanPlayersToStart)
 }
 
 func (w *Wars) HandleMessages(msg *tgbotapi.Message) {}
@@ -60,7 +64,7 @@ func (w *Wars) HandleRegisterCommands(msg *tgbotapi.Message, command string, use
 	case "top":
 		go w.c.SendMarkdownReply(
 			msg,
-			w.GetTopPlayers(context.Background(), usersInTopList),
+			w.GetTopPlayers(context.Background(), usersCountInTopList),
 		)
 	}
 }

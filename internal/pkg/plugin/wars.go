@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	usersInTopList = 10
-	robCount       = 3
+	usersCountInTopList   = 10
+	caravanPlayersToStart = 3
 	// Arena constants
 	arenaPlayersToStart = 2
 	minArenaMoney       = 30
@@ -37,7 +37,7 @@ type Player struct {
 }
 
 // Players - players array
-type Players [robCount]Player
+type Players []Player
 
 func checkPlayerByID(players Players, userID uint64) bool {
 	for _, player := range players {
@@ -50,7 +50,7 @@ func checkPlayerByID(players Players, userID uint64) bool {
 
 func (c *Players) getReputationAndCoins() (int, int) {
 	var coins, reputation int
-	for _, caravan := range c {
+	for _, caravan := range *c {
 		reputation += caravan.Reputation
 		coins += caravan.Coins
 	}
@@ -63,10 +63,10 @@ func (c *Players) getPhraseAndIds() (string, []int) {
 	playersPhrase := ""
 	ids := make([]int, 0)
 
-	for i, rob := range c {
+	for i, rob := range *c {
 		playersPhrase += "@" + GetMarkdownUsername(rob.Username)
 		ids = append(ids, int(rob.UserID))
-		if i != (robCount - 1) {
+		if i != (caravanPlayersToStart - 1) {
 			playersPhrase += ", "
 		}
 	}
@@ -93,7 +93,7 @@ func checkPlayersCount(players Players) int {
 
 func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *database.User) string {
 	robbersCount := checkPlayersCount(w.robbers)
-	if robbersCount == robCount {
+	if robbersCount == caravanPlayersToStart {
 		return "🐫🐪🐫"
 
 	}
@@ -104,7 +104,7 @@ func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *dat
 		user.ID, user.UserID, user.Username, user.WeaponsPower, user.Reputation, user.Coins,
 	}
 	robbersCount = checkPlayersCount(w.robbers)
-	if robbersCount == robCount {
+	if robbersCount == caravanPlayersToStart {
 		if !w.robberingProgress {
 			go w.caravansStart(ctx, msg)
 			return ""
@@ -113,7 +113,7 @@ func (w *Wars) RobCaravans(ctx context.Context, msg *tgbotapi.Message, user *dat
 
 	return fmt.Sprintf(
 		"Для отправления каравана нужно еще %d грабителя!",
-		robCount-robbersCount,
+		caravanPlayersToStart-robbersCount,
 	)
 }
 
@@ -217,7 +217,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 		}
 	}
 
-	for i := 0; i < robCount; i++ {
+	for i := 0; i < caravanPlayersToStart; i++ {
 		w.robbers[i] = Player{}
 	}
 
@@ -248,7 +248,7 @@ func (w *Wars) SendCaravanInvite(ctx context.Context, msg *tgbotapi.Message, use
 				fmt.Sprintf(
 					"Погнааале [ %d / %d ]",
 					currentCaravanRobbers,
-					robCount,
+					caravanPlayersToStart,
 				),
 				"join",
 			),
@@ -305,7 +305,7 @@ func (w *Wars) HandleCaravanCallbackQuery(update *tgbotapi.Update) {
 				fmt.Sprintf(
 					"Погнааале [ %d / %d ]",
 					currentCaravanRobbers,
-					robCount,
+					caravanPlayersToStart,
 				),
 				"join",
 			),
@@ -629,7 +629,6 @@ func (w *Wars) RegisterToArena(ctx context.Context, msg *tgbotapi.Message, user 
 func (w *Wars) startArenaFight(ctx context.Context, msg *tgbotapi.Message) {
 	w.arenaProgress = true
 	ids := getPlayersIDs(w.arenaPlayers)
-	ids = append([]int{}, ids[0], ids[1])
 
 	err := w.c.SendMarkdownReply(
 		msg,
