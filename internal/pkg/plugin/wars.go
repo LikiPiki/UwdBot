@@ -153,6 +153,7 @@ func (w *Wars) caravansStart(ctx context.Context, msg *tgbotapi.Message) {
 	timeLeft := 1 + rand.Intn(10)
 	timer1 := time.NewTimer(time.Minute * time.Duration(timeLeft))
 	<-timer1.C
+
 	if rand.Intn(2) == 0 {
 		if err := w.db.UserStorage.AddMoneyToUsers(ctx, 10, ids); err != nil {
 			w.errors <- errors.Wrap(err, "cannot add money to users")
