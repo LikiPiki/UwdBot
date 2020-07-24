@@ -52,6 +52,7 @@ func (s *Sender) SendSticker(msg *tgbotapi.Message, stickerID string) error {
 	return nil
 }
 
+// SendReply - send to user force reply to message
 func (s *Sender) SendReply(msg *tgbotapi.Message, text string) error {
 	reply := tgbotapi.NewMessage(
 		msg.Chat.ID,
@@ -147,6 +148,7 @@ func (s *Sender) DeleteMessage(msg *tgbotapi.Message) error {
 	return nil
 }
 
+// SendGif - sending gif by gifurl and gif name (gifTitle without spaces)
 func (s *Sender) SendGif(msg *tgbotapi.Message, gifURL string, gifTitle string) (*tgbotapi.Message, error) {
 	if gifTitle == "" {
 		gifTitle = "random"
@@ -163,7 +165,6 @@ func (s *Sender) SendGif(msg *tgbotapi.Message, gifURL string, gifTitle string) 
 	}
 
 	gif := tgbotapi.NewAnimationUpload(msg.Chat.ID, file)
-
 	sended, err := s.bot.Send(gif)
 	return &sended, err
 }
