@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -9,10 +10,11 @@ import (
 )
 
 const (
-	gifLimit = 500
+	gifLimit        = 500
+	manyGifMaxCount = 7
 )
 
-func (g *Gif) SendExistingGif(msg *tgbotapi.Message) {
+func (g *Gif) SendExistingGif(ctx context.Context, msg *tgbotapi.Message) {
 	gifCount, err := g.db.GifsStorage.CountAllGifs(context.Background())
 	if err != nil {
 		g.errors <- errors.Wrap(err, "cannot get gifs count")
@@ -20,7 +22,7 @@ func (g *Gif) SendExistingGif(msg *tgbotapi.Message) {
 	}
 
 	randGif := rand.Intn(gifCount)
-	gifToSend, err := g.db.GifsStorage.GetGifWithOffset(context.Background(), randGif)
+	gifToSend, err := g.db.GifsStorage.GetGifWithOffset(ctx, randGif)
 
 	if err != nil {
 		g.errors <- errors.Wrap(err, "cannot get gif with offset")
@@ -34,8 +36,53 @@ func (g *Gif) SendExistingGif(msg *tgbotapi.Message) {
 	}
 }
 
-func (g *Gif) AddGifIfNeed(msg *tgbotapi.Message) {
-	ctx := context.Background()
+func generateRandomIDs(count int, maxElements int) []int {
+	ids := make([]int, count)
+
+	for i := range ids {
+		ids[i] = rand.Intn(maxElements)
+	}
+
+	return ids
+}
+
+func (g *Gif) SendManyGifs(ctx context.Context, msg *tgbotapi.Message, count int) {
+	if count > manyGifMaxCount {
+		count = manyGifMaxCount
+	}
+
+	gifCount, err := g.db.GifsStorage.CountAllGifs(ctx)
+	if err != nil {
+		g.errors <- errors.Wrap(err, "cannot count gifs")
+		return
+	}
+
+	randomIDs := generateRandomIDs(count, gifCount)
+
+	gifs, err := g.db.GifsStorage.GetRandomGifs(ctx, randomIDs)
+
+	if err != nil {
+		g.errors <- errors.Wrap(
+			err,
+			fmt.Sprintf(
+				"cannot get %d gifs",
+				count,
+			),
+		)
+		return
+	}
+
+	for _, gifID := range gifs {
+		_, err := g.c.SendExistingGif(msg, gifID)
+
+		if err != nil {
+			g.errors <- errors.Wrap(err, "cannot send existing gif to chat")
+			return
+		}
+	}
+}
+
+func (g *Gif) AddGifIfNeed(ctx context.Context, msg *tgbotapi.Message) {
 
 	gifCount, err := g.db.GifsStorage.CountAllGifs(ctx)
 	if err != nil {
@@ -44,7 +91,7 @@ func (g *Gif) AddGifIfNeed(msg *tgbotapi.Message) {
 	}
 
 	randGif := rand.Intn(gifCount)
-	gifToReplace, err := g.db.GifsStorage.GetGifWithOffset(context.Background(), randGif)
+	gifToReplace, err := g.db.GifsStorage.GetGifWithOffset(ctx, randGif)
 	if err != nil {
 		g.errors <- errors.Wrap(err, "cannot get gif to replace")
 		return
@@ -65,9 +112,9 @@ func (g *Gif) AddGifIfNeed(msg *tgbotapi.Message) {
 	}
 }
 
-func (g *Gif) DeleteGif(msg *tgbotapi.Message, fileID string) {
+func (g *Gif) DeleteGif(ctx context.Context, msg *tgbotapi.Message, fileID string) {
 	// Deleting gif from postgre
-	err := g.db.GifsStorage.DeleteGifByFileID(context.Background(), fileID)
+	err := g.db.GifsStorage.DeleteGifByFileID(ctx, fileID)
 	if err != nil {
 		g.errors <- errors.Wrap(err, "cannot delete this GIF")
 		return

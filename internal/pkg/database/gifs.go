@@ -70,6 +70,32 @@ func (g *GifsStorage) ReplaceGifByID(ctx context.Context, gifID uint64, newGIF s
 	return nil
 }
 
+func (g *GifsStorage) GetRandomGifs(ctx context.Context, randomIDs []int) ([]string, error) {
+	gifs := make([]string, len(randomIDs))
+
+	commandTag, err := g.Exec(
+		ctx,
+		"SELECT gifid FROM (SELECT gifid, ROW_NUMBER() OVER(ORDER BY id) AS index FROM gifs) as t where index = ANY($1)",
+		randomIDs,
+	)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot select many random gifs")
+	}
+
+	if commandTag.RowsAffected() != int64(len(randomIDs)) {
+		return nil, errors.New(
+			fmt.Sprintf(
+				"rows affected %d, excepted %d",
+				len(randomIDs),
+				commandTag.RowsAffected(),
+			),
+		)
+	}
+
+	return gifs, nil
+}
+
 func (g *GifsStorage) InsertGif(ctx context.Context, gifID string) error {
 	eqID := "%" + gifID[len(gifID)-21:]
 	row := g.QueryRow(
