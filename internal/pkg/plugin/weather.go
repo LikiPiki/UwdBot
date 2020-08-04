@@ -20,6 +20,7 @@ const (
 )
 
 var (
+	// Map with cities, city ID from this json list - https://openweathermap.org/current
 	weatherCities = map[string]City{
 		"524894": City{
 			"Москва", "Москве",
@@ -33,9 +34,16 @@ var (
 		"706483": City{
 			"Харьков", "Харькове",
 		},
+		"520555": City{
+			"Нижний Новгород", "Нижнем Новгороде",
+		},
+		"1503940": City{
+			"Кедровка", "Кедровке",
+		},
 	}
 )
 
+// Filter - Filtering cities by city Name
 func Filter(arr []string, cond func(string) bool) []string {
 	result := []string{}
 	for i := range arr {

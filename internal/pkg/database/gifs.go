@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
@@ -68,6 +69,34 @@ func (g *GifsStorage) ReplaceGifByID(ctx context.Context, gifID uint64, newGIF s
 	}
 
 	return nil
+}
+
+func (g *GifsStorage) GetRandomGifs(ctx context.Context, randomIDs []string) ([]string, error) {
+	gifs := make([]string, len(randomIDs))
+
+	rows, err := g.Query(
+		ctx,
+		fmt.Sprintf(
+			"SELECT gifid FROM (SELECT gifid, ROW_NUMBER() OVER(ORDER BY id) AS index FROM gifs) as t where index  IN (%v)",
+			strings.Join(randomIDs, ", "),
+		),
+	)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot select many random gifs")
+	}
+
+	scanIndex := 0
+	for rows.Next() {
+		err := rows.Scan(&gifs[scanIndex])
+		scanIndex++
+
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot scan to to gifs array")
+		}
+	}
+
+	return gifs, nil
 }
 
 func (g *GifsStorage) InsertGif(ctx context.Context, gifID string) error {
