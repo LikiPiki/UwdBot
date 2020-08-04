@@ -36,27 +36,30 @@ func (g *Gif) Init(s *sender.Sender, db *database.Database) {
 func (g *Gif) HandleMessages(msg *tgbotapi.Message) {
 	if msg.Animation != nil {
 		g.AddGifIfNeed(context.Background(), msg)
+		return
+	}
+
+	// send a batch of gifs
+	re := regexp.MustCompile(`[G|g]if (\d+)`)
+	matches := re.FindStringSubmatch(msg.Text)
+	if len(matches) == 2 {
+		count, err := strconv.Atoi(matches[1])
+
+		if err != nil {
+			g.errors <- errors.Wrap(err, "cannot parse many gifs regexp")
+			return
+		}
+
+		go g.SendManyGifs(context.Background(), msg, count)
 	}
 }
 
 // Not register, simple commands
 func (g *Gif) HandleCommands(msg *tgbotapi.Message, command string) {
-	switch command {
-	case "gif":
+	// send single gif
+	if command == "gif" {
 		go g.SendExistingGif(context.Background(), msg)
-	default:
-		re := regexp.MustCompile(`\/gif (\d+)`)
-		matches := re.FindStringSubmatch(msg.Text)
-		if len(matches) == 2 {
-			count, err := strconv.Atoi(matches[1])
-
-			if err != nil {
-				g.errors <- errors.Wrap(err, "cannot parse many gifs regexp")
-				return
-			}
-
-			go g.SendManyGifs(context.Background(), msg, count)
-		}
+		return
 	}
 }
 
