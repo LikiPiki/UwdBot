@@ -43,6 +43,7 @@ var (
 	}
 )
 
+// Filter - Filtering cities by city Name
 func Filter(arr []string, cond func(string) bool) []string {
 	result := []string{}
 	for i := range arr {
