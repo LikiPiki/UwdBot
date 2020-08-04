@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
@@ -70,27 +71,29 @@ func (g *GifsStorage) ReplaceGifByID(ctx context.Context, gifID uint64, newGIF s
 	return nil
 }
 
-func (g *GifsStorage) GetRandomGifs(ctx context.Context, randomIDs []int) ([]string, error) {
+func (g *GifsStorage) GetRandomGifs(ctx context.Context, randomIDs []string) ([]string, error) {
 	gifs := make([]string, len(randomIDs))
 
-	commandTag, err := g.Exec(
+	rows, err := g.Query(
 		ctx,
-		"SELECT gifid FROM (SELECT gifid, ROW_NUMBER() OVER(ORDER BY id) AS index FROM gifs) as t where index = ANY($1)",
-		randomIDs,
+		fmt.Sprintf(
+			"SELECT gifid FROM (SELECT gifid, ROW_NUMBER() OVER(ORDER BY id) AS index FROM gifs) as t where index  IN (%v)",
+			strings.Join(randomIDs, ", "),
+		),
 	)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot select many random gifs")
 	}
 
-	if commandTag.RowsAffected() != int64(len(randomIDs)) {
-		return nil, errors.New(
-			fmt.Sprintf(
-				"rows affected %d, excepted %d",
-				len(randomIDs),
-				commandTag.RowsAffected(),
-			),
-		)
+	scanIndex := 0
+	for rows.Next() {
+		err := rows.Scan(&gifs[scanIndex])
+		scanIndex++
+
+		if err != nil {
+			return nil, errors.Wrap(err, "cannot scan to to gifs array")
+		}
 	}
 
 	return gifs, nil

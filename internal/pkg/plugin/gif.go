@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/pkg/errors"
@@ -36,11 +37,29 @@ func (g *Gif) SendExistingGif(ctx context.Context, msg *tgbotapi.Message) {
 	}
 }
 
-func generateRandomIDs(count int, maxElements int) []int {
-	ids := make([]int, count)
+func generateRandomStringIDs(count int, maxElements int) []string {
+	ids := make([]string, count)
+	var randomGifOffset string
 
 	for i := range ids {
-		ids[i] = rand.Intn(maxElements)
+		for true {
+			randomGifOffsetIsExists := false
+
+			// Generate offset + 1, becase SQL COUNT ROW func, returned indexes, starting from 1
+			randomGifOffset = strconv.Itoa(rand.Intn(maxElements) + 1)
+			for j := 0; j <= i; j++ {
+				if ids[j] == randomGifOffset {
+					randomGifOffsetIsExists = true
+					break
+				}
+			}
+
+			if !randomGifOffsetIsExists {
+				break
+			}
+		}
+
+		ids[i] = randomGifOffset
 	}
 
 	return ids
@@ -57,7 +76,7 @@ func (g *Gif) SendManyGifs(ctx context.Context, msg *tgbotapi.Message, count int
 		return
 	}
 
-	randomIDs := generateRandomIDs(count, gifCount)
+	randomIDs := generateRandomStringIDs(count, gifCount)
 
 	gifs, err := g.db.GifsStorage.GetRandomGifs(ctx, randomIDs)
 
