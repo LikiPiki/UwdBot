@@ -51,8 +51,8 @@ func (g *GifsStorage) ReplaceGifByID(ctx context.Context, gifID uint64, newGIF s
 	commandTag, err := g.Exec(
 		ctx,
 		"UPDATE gifs SET gifid = $1 where id = $2",
-		gifID,
 		newGIF,
+		gifID,
 	)
 
 	if err != nil {
