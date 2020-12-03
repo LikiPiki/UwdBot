@@ -95,7 +95,7 @@ func main() {
 		&pl.Wars{},
 		&pl.Minigames{},
 		&pl.Profiler{},
-		&pl.Weather{},
+		// &pl.Weather{},
 		&pl.Gif{},
 	}
 
