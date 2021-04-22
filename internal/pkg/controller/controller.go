@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"sort"
 
 	"github.com/LikiPiki/UwdBot/cmd/uwdbot/app"
@@ -54,6 +55,13 @@ func (c *Controller) Switch(ctx context.Context, updates tgbotapi.UpdatesChannel
 		if (update.Message == nil) && (update.InlineQuery != nil) {
 			c.handleInlineQuery(&update)
 			continue
+		}
+
+		if update.Message.From.UserName == "devstorm" {
+			num := rand.Intn(100)
+			if num <= 2 {
+				c.sender.SendSticker(msg, "CAACAgIAAxkBAAECNsNggSsNF51N1F4KmHQ62d1pLubR-gACPQ0AAiUjIEqkeMbZBUuUVx8E")
+			}
 		}
 
 		if update.Message == nil { // ignore any non-Message Updates
